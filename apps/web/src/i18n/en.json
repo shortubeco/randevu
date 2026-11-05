@@ -1,0 +1,98 @@
+{
+  "app": { "title": "Booking Panel" },
+  "nav": {
+    "dashboard": "Home",
+    "appointments": "Appointments",
+    "stylists": "Stylists",
+    "services": "Services",
+    "schedule": "My schedule",
+    "profile": "My profile",
+    "logout": "Log out"
+  },
+  "login": {
+    "title": "Sign in",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "error": "Wrong email or password"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "loading": "Loading...",
+    "empty": "No records found",
+    "error": "Something went wrong",
+    "confirmDelete": "Are you sure you want to delete this record?",
+    "active": "Active",
+    "passive": "Inactive",
+    "from": "From",
+    "to": "To",
+    "filter": "Filter",
+    "all": "All"
+  },
+  "status": {
+    "BEKLIYOR": "Pending",
+    "ONAYLANDI": "Approved",
+    "IPTAL": "Cancelled",
+    "TAMAMLANDI": "Completed",
+    "GELMEDI": "No-show"
+  },
+  "appointments": {
+    "title": "Appointments",
+    "date": "Date",
+    "time": "Time",
+    "customer": "Customer",
+    "stylist": "Stylist",
+    "service": "Service",
+    "phone": "Phone",
+    "status": "Status",
+    "actions": "Actions",
+    "approve": "Approve",
+    "cancel": "Cancel",
+    "complete": "Completed",
+    "noShow": "No-show",
+    "today": "Today's appointments",
+    "noneToday": "No appointments today"
+  },
+  "stylists": {
+    "title": "Stylists",
+    "new": "New stylist",
+    "name": "Full name",
+    "email": "Email",
+    "phone": "Phone",
+    "password": "Password",
+    "bio": "About",
+    "slot": "Slot length (min)",
+    "services": "Services offered",
+    "saveServices": "Save services"
+  },
+  "services": {
+    "title": "Services",
+    "new": "New service",
+    "name": "Service name",
+    "duration": "Duration (min)",
+    "price": "Price (₺)"
+  },
+  "schedule": {
+    "title": "My schedule",
+    "day": "Day",
+    "start": "Start",
+    "end": "End",
+    "breakStart": "Break start",
+    "breakEnd": "Break end",
+    "off": "Off",
+    "saveHours": "Save working hours",
+    "timeOff": "Time off",
+    "reason": "Reason",
+    "addTimeOff": "Add time off",
+    "saved": "Saved"
+  },
+  "days": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+  "profile": {
+    "title": "My profile",
+    "saved": "Profile updated"
+  }
+}

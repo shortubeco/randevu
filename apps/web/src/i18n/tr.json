@@ -1,0 +1,98 @@
+{
+  "app": { "title": "Randevu Paneli" },
+  "nav": {
+    "dashboard": "Ana sayfa",
+    "appointments": "Randevular",
+    "stylists": "Kuaförler",
+    "services": "Hizmetler",
+    "schedule": "Çalışma saatlerim",
+    "profile": "Profilim",
+    "logout": "Çıkış yap"
+  },
+  "login": {
+    "title": "Giriş yap",
+    "email": "E-posta",
+    "password": "Şifre",
+    "submit": "Giriş yap",
+    "error": "E-posta veya şifre hatalı"
+  },
+  "common": {
+    "save": "Kaydet",
+    "cancel": "Vazgeç",
+    "delete": "Sil",
+    "edit": "Düzenle",
+    "add": "Ekle",
+    "loading": "Yükleniyor...",
+    "empty": "Kayıt bulunamadı",
+    "error": "Bir hata oluştu",
+    "confirmDelete": "Bu kaydı silmek istediğinize emin misiniz?",
+    "active": "Aktif",
+    "passive": "Pasif",
+    "from": "Başlangıç",
+    "to": "Bitiş",
+    "filter": "Filtrele",
+    "all": "Tümü"
+  },
+  "status": {
+    "BEKLIYOR": "Bekliyor",
+    "ONAYLANDI": "Onaylandı",
+    "IPTAL": "İptal",
+    "TAMAMLANDI": "Tamamlandı",
+    "GELMEDI": "Gelmedi"
+  },
+  "appointments": {
+    "title": "Randevular",
+    "date": "Tarih",
+    "time": "Saat",
+    "customer": "Müşteri",
+    "stylist": "Kuaför",
+    "service": "Hizmet",
+    "phone": "Telefon",
+    "status": "Durum",
+    "actions": "İşlemler",
+    "approve": "Onayla",
+    "cancel": "İptal et",
+    "complete": "Tamamlandı",
+    "noShow": "Gelmedi",
+    "today": "Bugünkü randevular",
+    "noneToday": "Bugün randevu yok"
+  },
+  "stylists": {
+    "title": "Kuaförler",
+    "new": "Yeni kuaför",
+    "name": "Ad soyad",
+    "email": "E-posta",
+    "phone": "Telefon",
+    "password": "Şifre",
+    "bio": "Hakkında",
+    "slot": "Slot süresi (dk)",
+    "services": "Verdiği hizmetler",
+    "saveServices": "Hizmetleri kaydet"
+  },
+  "services": {
+    "title": "Hizmetler",
+    "new": "Yeni hizmet",
+    "name": "Hizmet adı",
+    "duration": "Süre (dk)",
+    "price": "Fiyat (₺)"
+  },
+  "schedule": {
+    "title": "Çalışma saatlerim",
+    "day": "Gün",
+    "start": "Başlangıç",
+    "end": "Bitiş",
+    "breakStart": "Mola başlangıç",
+    "breakEnd": "Mola bitiş",
+    "off": "Kapalı",
+    "saveHours": "Çalışma saatlerini kaydet",
+    "timeOff": "İzin günleri",
+    "reason": "Sebep",
+    "addTimeOff": "İzin ekle",
+    "saved": "Kaydedildi"
+  },
+  "days": ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"],
+  "profile": {
+    "title": "Profilim",
+    "saved": "Profil güncellendi"
+  }
+}
