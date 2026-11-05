@@ -4,8 +4,9 @@ import { api, ApiError } from '../api/client';
 import { formatDate, formatTime } from '../lib/format';
 import type { TimeOff, WorkingHour } from '../types';
 
-interface DayForm {
-  open: boolean;
+// Her satır bir çalışma aralığıdır; gün başına birden fazla aralık olabilir.
+interface Block {
+  gun: number;
   baslangic: string;
   bitis: string;
   mola: boolean;
@@ -13,18 +14,13 @@ interface DayForm {
   molaBitis: string;
 }
 
-const DEFAULT_DAY: DayForm = {
-  open: false,
-  baslangic: '09:00',
-  bitis: '18:00',
-  mola: false,
-  molaBaslangic: '12:30',
-  molaBitis: '13:30',
-};
+function newBlock(gun: number): Block {
+  return { gun, baslangic: '09:00', bitis: '18:00', mola: false, molaBaslangic: '12:30', molaBitis: '13:30' };
+}
 
 export default function SchedulePage() {
   const { t, i18n } = useTranslation();
-  const [days, setDays] = useState<DayForm[]>(() => Array.from({ length: 7 }, () => ({ ...DEFAULT_DAY })));
+  const [blocks, setBlocks] = useState<Block[]>([]);
   const [timeOff, setTimeOff] = useState<TimeOff[] | null>(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -37,20 +33,16 @@ export default function SchedulePage() {
         api<WorkingHour[]>('/stylists/me/working-hours'),
         api<TimeOff[]>('/stylists/me/time-off'),
       ]);
-      // Arayüz gün başına tek aralık gösterir; ilk kayıt alınır.
-      const next = Array.from({ length: 7 }, () => ({ ...DEFAULT_DAY }));
-      for (const r of wh) {
-        if (next[r.gun].open) continue;
-        next[r.gun] = {
-          open: true,
+      setBlocks(
+        wh.map((r) => ({
+          gun: r.gun,
           baslangic: r.baslangic,
           bitis: r.bitis,
           mola: !!r.molaBaslangic,
-          molaBaslangic: r.molaBaslangic ?? DEFAULT_DAY.molaBaslangic,
-          molaBitis: r.molaBitis ?? DEFAULT_DAY.molaBitis,
-        };
-      }
-      setDays(next);
+          molaBaslangic: r.molaBaslangic ?? '12:30',
+          molaBitis: r.molaBitis ?? '13:30',
+        })),
+      );
       setTimeOff(to);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('common.error'));
@@ -61,29 +53,34 @@ export default function SchedulePage() {
     load();
   }, []);
 
-  function updateDay(i: number, patch: Partial<DayForm>) {
-    setDays((prev) => prev.map((d, idx) => (idx === i ? { ...d, ...patch } : d)));
+  function toggleDay(gun: number, open: boolean) {
+    setBlocks((prev) =>
+      open ? [...prev, newBlock(gun)] : prev.filter((b) => b.gun !== gun),
+    );
+  }
+
+  function updateBlock(index: number, patch: Partial<Block>) {
+    setBlocks((prev) => prev.map((b, i) => (i === index ? { ...b, ...patch } : b)));
+  }
+
+  function removeBlock(index: number) {
+    setBlocks((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function saveHours(e: FormEvent) {
     e.preventDefault();
     setError('');
     setMessage('');
-    const payload = days
-      .map((d, gun) =>
-        d.open
-          ? {
-              gun,
-              baslangic: d.baslangic,
-              bitis: d.bitis,
-              ...(d.mola ? { molaBaslangic: d.molaBaslangic, molaBitis: d.molaBitis } : {}),
-            }
-          : null,
-      )
-      .filter(Boolean);
+    const payload = blocks.map((b) => ({
+      gun: b.gun,
+      baslangic: b.baslangic,
+      bitis: b.bitis,
+      ...(b.mola ? { molaBaslangic: b.molaBaslangic, molaBitis: b.molaBitis } : {}),
+    }));
     try {
       await api('/stylists/me/working-hours', { method: 'PUT', body: JSON.stringify({ days: payload }) });
       setMessage(t('schedule.saved'));
+      await load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('common.error'));
     }
@@ -127,35 +124,47 @@ export default function SchedulePage() {
       {error && <p className="text-sm text-red-600">{error}</p>}
       {message && <p className="text-sm text-green-700">{message}</p>}
 
-      <form onSubmit={saveHours} className="card space-y-3">
-        {days.map((d, i) => (
-          <div key={i} className="grid items-center gap-2 border-b border-slate-100 pb-3 last:border-0 sm:grid-cols-[120px_80px_1fr]">
-            <label className="flex items-center gap-2 text-sm font-medium">
-              <input type="checkbox" checked={d.open} onChange={(e) => updateDay(i, { open: e.target.checked })} />
-              {dayNames[i]}
-            </label>
-            {!d.open ? (
-              <span className="text-sm text-slate-400">{t('schedule.off')}</span>
-            ) : (
-              <div className="flex flex-wrap items-center gap-2 text-sm">
-                <input type="time" className="input w-28" value={d.baslangic} onChange={(e) => updateDay(i, { baslangic: e.target.value })} />
-                <span>–</span>
-                <input type="time" className="input w-28" value={d.bitis} onChange={(e) => updateDay(i, { bitis: e.target.value })} />
-                <label className="ml-3 flex items-center gap-1">
-                  <input type="checkbox" checked={d.mola} onChange={(e) => updateDay(i, { mola: e.target.checked })} />
-                  {t('schedule.breakStart')}
-                </label>
-                {d.mola && (
-                  <>
-                    <input type="time" className="input w-28" value={d.molaBaslangic} onChange={(e) => updateDay(i, { molaBaslangic: e.target.value })} />
-                    <span>–</span>
-                    <input type="time" className="input w-28" value={d.molaBitis} onChange={(e) => updateDay(i, { molaBitis: e.target.value })} />
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
+      <form onSubmit={saveHours} className="card space-y-4">
+        {dayNames.map((name, gun) => {
+          const dayBlocks = blocks.map((b, index) => ({ b, index })).filter(({ b }) => b.gun === gun);
+          const open = dayBlocks.length > 0;
+          return (
+            <div key={gun} className="flex flex-col gap-2 border-b border-slate-100 pb-3 last:border-0 sm:flex-row sm:items-start">
+              <label className="flex w-32 items-center gap-2 pt-2 text-sm font-medium">
+                <input type="checkbox" checked={open} onChange={(e) => toggleDay(gun, e.target.checked)} />
+                {name}
+              </label>
+              {!open ? (
+                <span className="pt-2 text-sm text-slate-400">{t('schedule.off')}</span>
+              ) : (
+                <div className="flex-1 space-y-2">
+                  {dayBlocks.map(({ b, index }) => (
+                    <div key={index} className="flex flex-wrap items-center gap-2 text-sm">
+                      <input type="time" className="input w-28" value={b.baslangic} onChange={(e) => updateBlock(index, { baslangic: e.target.value })} aria-label={t('schedule.start')} />
+                      <span>–</span>
+                      <input type="time" className="input w-28" value={b.bitis} onChange={(e) => updateBlock(index, { bitis: e.target.value })} aria-label={t('schedule.end')} />
+                      <label className="flex items-center gap-1">
+                        <input type="checkbox" checked={b.mola} onChange={(e) => updateBlock(index, { mola: e.target.checked })} />
+                        {t('schedule.breakStart')}
+                      </label>
+                      {b.mola && (
+                        <>
+                          <input type="time" className="input w-28" value={b.molaBaslangic} onChange={(e) => updateBlock(index, { molaBaslangic: e.target.value })} aria-label={t('schedule.breakStart')} />
+                          <span>–</span>
+                          <input type="time" className="input w-28" value={b.molaBitis} onChange={(e) => updateBlock(index, { molaBitis: e.target.value })} aria-label={t('schedule.breakEnd')} />
+                        </>
+                      )}
+                      <button type="button" className="btn-ghost" onClick={() => removeBlock(index)}>{t('schedule.removeBlock')}</button>
+                    </div>
+                  ))}
+                  <button type="button" className="btn-ghost" onClick={() => setBlocks((prev) => [...prev, newBlock(gun)])}>
+                    {t('schedule.addBlock')}
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
         <button type="submit" className="btn-primary">{t('schedule.saveHours')}</button>
       </form>
 

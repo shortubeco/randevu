@@ -40,6 +40,11 @@ export class AdminServicesController {
     return this.services.create(dto);
   }
 
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.services.findOne(id);
+  }
+
   @Patch(':id')
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateServiceDto) {
     return this.services.update(id, dto);

@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { api, ApiError } from '../api/client';
 import type { AdminStylist, Service } from '../types';
 
@@ -106,6 +107,7 @@ export default function StylistsPage() {
                     <button className="btn-ghost" onClick={() => toggleActive(s)}>
                       {s.isActive ? t('common.passive') : t('common.active')}
                     </button>
+                    <Link className="btn-ghost" to={`/kuaforler/${s.id}`}>{t('stylists.edit')}</Link>
                     <button className="btn-danger" onClick={() => remove(s.id)}>{t('common.delete')}</button>
                   </td>
                 </tr>
@@ -165,7 +167,7 @@ function NewStylistForm({ onDone, onError }: { onDone: () => void; onError: (m: 
   return (
     <form onSubmit={onSubmit} className="card grid gap-3 sm:grid-cols-2">
       <input className="input" placeholder={t('stylists.name')} value={form.ad} onChange={(e) => set('ad', e.target.value)} required />
-      <input className="input" placeholder={t('stylists.name')} value={form.soyad} onChange={(e) => set('soyad', e.target.value)} required />
+      <input className="input" placeholder={t('stylists.surname')} value={form.soyad} onChange={(e) => set('soyad', e.target.value)} required />
       <input className="input" placeholder={t('stylists.email')} type="email" value={form.email} onChange={(e) => set('email', e.target.value)} required />
       <input className="input" placeholder={t('stylists.phone')} value={form.telefon} onChange={(e) => set('telefon', e.target.value)} required />
       <input className="input" placeholder={t('stylists.password')} type="password" minLength={8} value={form.password} onChange={(e) => set('password', e.target.value)} required />

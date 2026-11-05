@@ -17,6 +17,10 @@ interface AuthState {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  // Sunucudan kullanıcı bilgisini yeniden okur (profil güncellemesinden sonra).
+  refreshUser: () => Promise<void>;
+  // Yerel oturumu sunucu çağrısı yapmadan kapatır (şifre değişiminden sonra).
+  endSession: () => void;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -49,18 +53,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(data.user);
   }
 
+  function endSession() {
+    clearSession();
+    setUser(null);
+  }
+
   function logout() {
     const rt = getRefreshToken();
     if (rt) {
       // Sunucu tarafını beklemeden yerel oturumu kapatır.
       api('/auth/logout', { method: 'POST', body: JSON.stringify({ refreshToken: rt }) }).catch(() => {});
     }
-    clearSession();
-    setUser(null);
+    endSession();
+  }
+
+  async function refreshUser() {
+    setUser(await api<User>('/auth/me'));
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, loading, login, logout, refreshUser, endSession }}>
+      {children}
+    </AuthContext.Provider>
   );
 }
 

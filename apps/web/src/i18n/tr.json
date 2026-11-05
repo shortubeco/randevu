@@ -1,10 +1,34 @@
 {
   "app": { "title": "Randevu Paneli" },
+  "dashboard": {
+    "title": "Ana sayfa",
+    "today": "Bugünkü randevu",
+    "pending": "Onay bekleyen",
+    "monthCompleted": "Bu ay tamamlanan",
+    "monthRevenue": "Bu ay ciro",
+    "monthTotal": "Bu ay toplam randevu",
+    "customers": "Müşteri",
+    "stylists": "Aktif kuaför",
+    "services": "Aktif hizmet",
+    "monthlyCount": "Son 12 ay randevu sayısı",
+    "monthlyRevenue": "Son 12 ay ciro",
+    "statusMonth": "Bu ayın durumları",
+    "todayList": "Bugünün randevuları",
+    "stylistsTable": "Kuaförler (bu ay)",
+    "servicesTable": "Hizmetler (bu ay)",
+    "recentCustomers": "Son kayıt olan müşteriler",
+    "viewAll": "Tümünü gör",
+    "noData": "Veri yok",
+    "appointments": "randevu",
+    "registeredAt": "Kayıt"
+  },
   "nav": {
     "dashboard": "Ana sayfa",
     "appointments": "Randevular",
     "stylists": "Kuaförler",
     "services": "Hizmetler",
+    "customers": "Müşteriler",
+    "reports": "Raporlar",
     "schedule": "Çalışma saatlerim",
     "profile": "Profilim",
     "logout": "Çıkış yap"
@@ -31,7 +55,8 @@
     "from": "Başlangıç",
     "to": "Bitiş",
     "filter": "Filtrele",
-    "all": "Tümü"
+    "all": "Tümü",
+    "noAccess": "Bu sayfaya erişim yetkiniz yok."
   },
   "status": {
     "BEKLIYOR": "Bekliyor",
@@ -54,36 +79,72 @@
     "cancel": "İptal et",
     "complete": "Tamamlandı",
     "noShow": "Gelmedi",
-    "today": "Bugünkü randevular",
+    "today": "Bugün",
     "noneToday": "Bugün randevu yok"
   },
   "stylists": {
     "title": "Kuaförler",
     "new": "Yeni kuaför",
-    "name": "Ad soyad",
+    "name": "Ad",
+    "surname": "Soyad",
     "email": "E-posta",
     "phone": "Telefon",
-    "password": "Şifre",
+    "password": "Şifre (en az 8 karakter)",
     "bio": "Hakkında",
     "slot": "Slot süresi (dk)",
     "services": "Verdiği hizmetler",
-    "saveServices": "Hizmetleri kaydet"
+    "saveServices": "Hizmetleri kaydet",
+    "edit": "Düzenle",
+    "editTitle": "Kuaförü düzenle",
+    "newPassword": "Yeni şifre",
+    "passwordHint": "Boş bırakılırsa şifre değişmez. Girilirse kuaförün tüm oturumları kapanır ve yeni şifreyi kuaföre iletmeyi unutmayın.",
+    "saved": "Kuaför bilgileri güncellendi",
+    "back": "Kuaförlere dön",
+    "notFound": "Kuaför bulunamadı"
   },
   "services": {
     "title": "Hizmetler",
-    "new": "Yeni hizmet",
+    "new": "Ekle",
     "name": "Hizmet adı",
     "duration": "Süre (dk)",
-    "price": "Fiyat (₺)"
+    "price": "Fiyat (₺)",
+    "edit": "Düzenle",
+    "editTitle": "Hizmeti düzenle",
+    "saved": "Hizmet güncellendi",
+    "back": "Hizmetlere dön",
+    "notFound": "Hizmet bulunamadı"
+  },
+  "customers": {
+    "title": "Müşteriler",
+    "name": "Ad soyad",
+    "phone": "Telefon",
+    "email": "E-posta",
+    "count": "Randevu sayısı",
+    "registered": "Kayıt tarihi"
+  },
+  "reports": {
+    "title": "Raporlar",
+    "run": "Raporu getir",
+    "byStatus": "Duruma göre randevular",
+    "byStylist": "Kuaförlere göre",
+    "totalRevenue": "Toplam ciro",
+    "total": "Toplam",
+    "completed": "Tamamlanan",
+    "revenue": "Ciro",
+    "count": "Adet",
+    "stylist": "Kuaför",
+    "invalidRange": "Bitiş tarihi başlangıçtan sonra olmalı"
   },
   "schedule": {
     "title": "Çalışma saatlerim",
     "day": "Gün",
     "start": "Başlangıç",
     "end": "Bitiş",
-    "breakStart": "Mola başlangıç",
+    "breakStart": "Mola",
     "breakEnd": "Mola bitiş",
     "off": "Kapalı",
+    "addBlock": "Aralık ekle",
+    "removeBlock": "Kaldır",
     "saveHours": "Çalışma saatlerini kaydet",
     "timeOff": "İzin günleri",
     "reason": "Sebep",
@@ -93,6 +154,17 @@
   "days": ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"],
   "profile": {
     "title": "Profilim",
-    "saved": "Profil güncellendi"
+    "personal": "Kişisel bilgiler",
+    "savePersonal": "Bilgileri kaydet",
+    "personalSaved": "Bilgiler güncellendi",
+    "stylistInfo": "Kuaför bilgileri",
+    "saved": "Profil güncellendi",
+    "password": "Şifre değiştir",
+    "currentPassword": "Mevcut şifre",
+    "newPassword": "Yeni şifre (en az 8 karakter)",
+    "newPasswordRepeat": "Yeni şifre (tekrar)",
+    "mismatch": "Yeni şifreler eşleşmiyor",
+    "changePassword": "Şifreyi değiştir",
+    "passwordChanged": "Şifre değiştirildi. Tüm cihazlarda oturum kapatıldı, lütfen tekrar giriş yapın."
   }
 }

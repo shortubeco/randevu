@@ -70,6 +70,11 @@ export class AdminStylistsController {
     return this.stylists.create(dto);
   }
 
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.stylists.findAdmin(id);
+  }
+
   @Patch(':id')
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: AdminUpdateStylistDto) {
     return this.stylists.adminUpdate(id, dto);

@@ -14,8 +14,10 @@ const NAV: NavItem[] = [
   { to: '/randevular', labelKey: 'nav.appointments', roles: ['ADMIN', 'KUAFOR'] },
   { to: '/kuaforler', labelKey: 'nav.stylists', roles: ['ADMIN'] },
   { to: '/hizmetler', labelKey: 'nav.services', roles: ['ADMIN'] },
+  { to: '/musteriler', labelKey: 'nav.customers', roles: ['ADMIN'] },
+  { to: '/raporlar', labelKey: 'nav.reports', roles: ['ADMIN'] },
   { to: '/calisma', labelKey: 'nav.schedule', roles: ['KUAFOR'] },
-  { to: '/profil', labelKey: 'nav.profile', roles: ['KUAFOR'] },
+  { to: '/profil', labelKey: 'nav.profile', roles: ['ADMIN', 'KUAFOR'] },
 ];
 
 export default function Layout() {

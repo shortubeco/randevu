@@ -5,3 +5,6 @@ dist
 
 # Kişisel ADMIN hesabı bilgileri içerir
 db/create-admin.sql
+
+# Derleme çıktısı paketi (sunucuya yükleme için yerelde tutulur)
+dist.zip

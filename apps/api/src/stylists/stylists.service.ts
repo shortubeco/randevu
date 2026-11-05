@@ -119,6 +119,47 @@ export class StylistsService {
       );
       if (!r.rows[0]) throw new NotFoundException('Kuaför bulunamadı');
 
+      const hasUserFields =
+        dto.ad !== undefined || dto.soyad !== undefined || dto.telefon !== undefined || dto.email !== undefined;
+      if (hasUserFields) {
+        try {
+          await client.query(
+            `UPDATE "User" SET
+               ad = COALESCE($2, ad),
+               soyad = COALESCE($3, soyad),
+               telefon = COALESCE($4, telefon),
+               email = COALESCE($5, email),
+               "updatedAt" = now()
+             WHERE id = $1`,
+            [
+              r.rows[0].userId,
+              dto.ad ?? null,
+              dto.soyad ?? null,
+              dto.telefon ?? null,
+              dto.email ? dto.email.toLowerCase() : null,
+            ],
+          );
+        } catch (err) {
+          if (pgCode(err) === UNIQUE_VIOLATION) {
+            throw new ConflictException('Bu e-posta ile kayıtlı bir hesap var');
+          }
+          throw err;
+        }
+      }
+
+      if (dto.password) {
+        const hash = await bcrypt.hash(dto.password, 12);
+        await client.query(
+          `UPDATE "User" SET "passwordHash" = $2, "updatedAt" = now() WHERE id = $1`,
+          [r.rows[0].userId, hash],
+        );
+        await client.query(
+          `UPDATE "RefreshToken" SET "revokedAt" = now()
+           WHERE "userId" = $1 AND "revokedAt" IS NULL`,
+          [r.rows[0].userId],
+        );
+      }
+
       if (dto.isActive !== undefined) {
         await client.query(
           `UPDATE "User" SET "isActive" = $2, "updatedAt" = now() WHERE id = $1`,
@@ -134,6 +175,19 @@ export class StylistsService {
       }
       return { ok: true };
     });
+  }
+
+  // ADMIN düzenleme formu için tek kuaförün tüm bilgileri (pasifler dahil).
+  async findAdmin(id: number) {
+    const r = await this.db.query(
+      `SELECT s.id, u.ad, u.soyad, u.email, u.telefon, u."isActive",
+              s.bio, s."photoUrl", s."slotDakika"
+       FROM "Stylist" s JOIN "User" u ON u.id = s."userId"
+       WHERE s.id = $1 AND s."deletedAt" IS NULL`,
+      [id],
+    );
+    if (!r.rows[0]) throw new NotFoundException('Kuaför bulunamadı');
+    return r.rows[0];
   }
 
   // Soft delete: kuaför kaydı ve hesabı işaretlenir, oturumları kapanır.

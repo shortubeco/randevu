@@ -1,6 +1,10 @@
-# Tek sayfa uygulama: dosya veya klasör yoksa index.html'e yönlendir.
+# HTTP isteklerini HTTPS'e yönlendir (CORS ve güvenlik için).
 <IfModule mod_rewrite.c>
   RewriteEngine On
+  RewriteCond %{HTTPS} off
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [L,R=301]
+
+  # Tek sayfa uygulama: dosya veya klasör yoksa index.html'e yönlendir.
   RewriteBase /
   RewriteRule ^index\.html$ - [L]
   RewriteCond %{REQUEST_FILENAME} !-f

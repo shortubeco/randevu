@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { api, ApiError } from '../api/client';
 import type { Service } from '../types';
 
@@ -75,6 +76,7 @@ export default function ServicesPage() {
                     >
                       {s.aktif ? t('common.passive') : t('common.active')}
                     </button>
+                    <Link className="btn-ghost" to={`/hizmetler/${s.id}`}>{t('services.edit')}</Link>
                     <button
                       className="btn-danger"
                       onClick={() => window.confirm(t('common.confirmDelete')) && run(() => api(`/admin/services/${s.id}`, { method: 'DELETE' }))}

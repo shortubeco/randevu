@@ -34,6 +34,15 @@ export class ServicesService {
     return r.rows[0];
   }
 
+  async findOne(id: number) {
+    const r = await this.db.query(
+      `SELECT ${SERVICE_COLUMNS} FROM "Service" WHERE id = $1 AND "deletedAt" IS NULL`,
+      [id],
+    );
+    if (!r.rows[0]) throw new NotFoundException('Hizmet bulunamadı');
+    return r.rows[0];
+  }
+
   async update(id: number, dto: UpdateServiceDto) {
     const r = await this.db.query(
       `UPDATE "Service" SET

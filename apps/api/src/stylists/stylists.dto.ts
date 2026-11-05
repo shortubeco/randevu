@@ -66,8 +66,33 @@ export class UpdateStylistProfileDto {
   slotDakika?: number;
 }
 
-// ADMIN, profil alanlarına ek olarak hesabı pasifleştirebilir.
+// ADMIN, profil alanlarına ek olarak kullanıcı bilgilerini ve hesap durumunu güncelleyebilir.
 export class AdminUpdateStylistDto extends UpdateStylistProfileDto {
+  @IsOptional()
+  @IsString()
+  @Length(2, 60)
+  ad?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(2, 60)
+  soyad?: string;
+
+  @IsOptional()
+  @Matches(/^\+?[0-9]{10,15}$/, { message: 'Telefon numarası geçersiz' })
+  telefon?: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  // Verilirse şifre sıfırlanır ve kuaförün tüm oturumları kapanır.
+  @IsOptional()
+  @IsString()
+  @MinLength(8)
+  @MaxLength(72)
+  password?: string;
+
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;

@@ -20,7 +20,10 @@ Monorepo: `apps/api` (NestJS) ve `apps/web` (web paneli) var. `apps/mobile` (Exp
 - Stil sınıfları `src/index.css` içinde (`btn-primary`, `btn-ghost`, `btn-danger`, `input`, `label`, `card`). Tailwind v4'te `@apply` içinde özel sınıf kullanılamaz, yardımcı sınıfları tek tek yaz.
 - `public/.htaccess`: SPA yönlendirmesi (Apache/LiteSpeed).
 - Yayın: `panel.sozcutvcanli.com` (HTTPS). Dosyalar `npm run build` çıktısıyla cPanel'de alt alan adı klasörüne yüklenir. Panel origin'i API'nin `CORS_ORIGINS` listesinde tam olarak `https://` ile yer almalı; `http://` ile açılırsa CORS hatası verir.
-- Bilinen eksikler: kuaförün ad/telefon güncellemesi (`PATCH /auth/me` API'de yok), şifre değiştirme, müşteri listesi, raporlar, HTTP→HTTPS yönlendirmesi, gün başına çoklu çalışma aralığı (panel yalnızca ilkini gösterir).
+- Sayfalar: `/randevular` (günlük liste, durum işlemleri), `/kuaforler`, `/hizmetler`, `/musteriler`, `/raporlar` (ADMIN), `/calisma` (çoklu çalışma aralığı ve izinler), `/profil` (kişisel bilgi, şifre değiştirme; KUAFOR'a ek olarak kuaför bilgisi).
+- Şifre değişince sunucu tüm refresh token'ları iptal eder; panel oturumu kapatır ve yeniden girişi ister.
+- `public/.htaccess` HTTP'yi HTTPS'e yönlendirir.
+- Bilinen eksikler: müşteri paneli yok (müşteri yalnızca mobilden kullanır), raporlar yalnızca tarih aralığı + durum/kuaför bazlı.
 
 ## API (`apps/api`) komutları
 
@@ -47,6 +50,8 @@ Global prefix `api/v1`. Varsayılan olarak tüm uç noktalar giriş ister; herke
   - Refresh token: rastgele 48 byte, veritabanında yalnızca SHA-256 hash'i (`RefreshToken`), 30 gün. Her yenilemede döndürülür. İptal edilmiş token tekrar kullanılırsa kullanıcının tüm oturumları kapanır.
   - `JwtAuthGuard` ve `RolesGuard` global (`APP_GUARD`). `@Roles(Role.ADMIN)` ile rol kısıtlanır, `@CurrentUser()` ile token payload'ı alınır.
   - Uç noktalar: `POST /auth/register` (her zaman MUSTERI), `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`, `GET /auth/me`.
+- `src/profile/`: `PATCH /auth/me` (ad, soyad, telefon), `POST /auth/change-password` (mevcut şifre doğrulanır, tüm refresh token'lar iptal edilir).
+- `src/admin/`: `GET /admin/customers` (müşteri listesi, randevu sayısı), `GET /admin/reports?from&to` (duruma göre sayılar, kuaför bazlı ciro; ciro yalnızca TAMAMLANDI).
 - `src/services/`: `GET /services` (aktif hizmetler). `/admin/services` (ADMIN): listele, ekle, güncelle, sil (soft delete).
 - `src/stylists/`:
   - `GET /stylists`, `GET /stylists/:id`, `GET /stylists/:id/services`: giriş gerekir, yalnızca aktif kuaförler.
@@ -105,7 +110,6 @@ Sunucuda doğrulandı: çakışma (aynı saate ikinci randevu → 409), mola saa
 Henüz test edilmedi (kullanıcı backend testlerini şimdilik durdurdu): müşteri iptal/değişiklik, 2 saat kuralı, admin listesi. Bu testler web panel tamamlandıktan sonra, uçtan uca olarak yapılabilir.
 
 Yapılacaklar:
-- Müşteri profil güncelleme (`PATCH /auth/me`) ve şifre değiştirme.
 - `register` ve `login` için istek sınırı (rate limit).
 - Randevu hatırlatma bildirimleri (Expo Push, plan 6. aşama).
 - Mobil uygulama (`apps/mobile`, Expo). Web paneli tamam, ayrıca bkz. "Web paneli" bölümü.

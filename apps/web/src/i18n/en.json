@@ -1,10 +1,34 @@
 {
   "app": { "title": "Booking Panel" },
+  "dashboard": {
+    "title": "Home",
+    "today": "Today's appointments",
+    "pending": "Awaiting approval",
+    "monthCompleted": "Completed this month",
+    "monthRevenue": "Revenue this month",
+    "monthTotal": "Appointments this month",
+    "customers": "Customers",
+    "stylists": "Active stylists",
+    "services": "Active services",
+    "monthlyCount": "Appointments, last 12 months",
+    "monthlyRevenue": "Revenue, last 12 months",
+    "statusMonth": "Status this month",
+    "todayList": "Today's appointments",
+    "stylistsTable": "Stylists (this month)",
+    "servicesTable": "Services (this month)",
+    "recentCustomers": "Recently registered customers",
+    "viewAll": "View all",
+    "noData": "No data",
+    "appointments": "appointments",
+    "registeredAt": "Registered"
+  },
   "nav": {
     "dashboard": "Home",
     "appointments": "Appointments",
     "stylists": "Stylists",
     "services": "Services",
+    "customers": "Customers",
+    "reports": "Reports",
     "schedule": "My schedule",
     "profile": "My profile",
     "logout": "Log out"
@@ -31,7 +55,8 @@
     "from": "From",
     "to": "To",
     "filter": "Filter",
-    "all": "All"
+    "all": "All",
+    "noAccess": "You do not have access to this page."
   },
   "status": {
     "BEKLIYOR": "Pending",
@@ -54,36 +79,72 @@
     "cancel": "Cancel",
     "complete": "Completed",
     "noShow": "No-show",
-    "today": "Today's appointments",
+    "today": "Today",
     "noneToday": "No appointments today"
   },
   "stylists": {
     "title": "Stylists",
     "new": "New stylist",
-    "name": "Full name",
+    "name": "First name",
+    "surname": "Last name",
     "email": "Email",
     "phone": "Phone",
-    "password": "Password",
+    "password": "Password (min. 8 characters)",
     "bio": "About",
     "slot": "Slot length (min)",
     "services": "Services offered",
-    "saveServices": "Save services"
+    "saveServices": "Save services",
+    "edit": "Edit",
+    "editTitle": "Edit stylist",
+    "newPassword": "New password",
+    "passwordHint": "Leave empty to keep the current password. If set, the stylist's sessions are signed out and the new password must be shared with them.",
+    "saved": "Stylist details updated",
+    "back": "Back to stylists",
+    "notFound": "Stylist not found"
   },
   "services": {
     "title": "Services",
-    "new": "New service",
+    "new": "Add",
     "name": "Service name",
     "duration": "Duration (min)",
-    "price": "Price (₺)"
+    "price": "Price (₺)",
+    "edit": "Edit",
+    "editTitle": "Edit service",
+    "saved": "Service updated",
+    "back": "Back to services",
+    "notFound": "Service not found"
+  },
+  "customers": {
+    "title": "Customers",
+    "name": "Name",
+    "phone": "Phone",
+    "email": "Email",
+    "count": "Appointments",
+    "registered": "Registered"
+  },
+  "reports": {
+    "title": "Reports",
+    "run": "Run report",
+    "byStatus": "Appointments by status",
+    "byStylist": "By stylist",
+    "totalRevenue": "Total revenue",
+    "total": "Total",
+    "completed": "Completed",
+    "revenue": "Revenue",
+    "count": "Count",
+    "stylist": "Stylist",
+    "invalidRange": "End date must be after start date"
   },
   "schedule": {
     "title": "My schedule",
     "day": "Day",
     "start": "Start",
     "end": "End",
-    "breakStart": "Break start",
+    "breakStart": "Break",
     "breakEnd": "Break end",
     "off": "Off",
+    "addBlock": "Add block",
+    "removeBlock": "Remove",
     "saveHours": "Save working hours",
     "timeOff": "Time off",
     "reason": "Reason",
@@ -93,6 +154,17 @@
   "days": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
   "profile": {
     "title": "My profile",
-    "saved": "Profile updated"
+    "personal": "Personal information",
+    "savePersonal": "Save information",
+    "personalSaved": "Information updated",
+    "stylistInfo": "Stylist information",
+    "saved": "Profile updated",
+    "password": "Change password",
+    "currentPassword": "Current password",
+    "newPassword": "New password (min. 8 characters)",
+    "newPasswordRepeat": "New password (repeat)",
+    "mismatch": "New passwords do not match",
+    "changePassword": "Change password",
+    "passwordChanged": "Password changed. You were signed out on all devices, please sign in again."
   }
 }
