@@ -80,63 +80,81 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="max-w-xl space-y-6">
-      <h1 className="text-2xl font-semibold text-slate-900">{t('profile.title')}</h1>
+    <div className="vstack gap-4" style={{ maxWidth: 760 }}>
+      <div>
+        <h1 className="h3 page-title mb-1">{t('profile.title')}</h1>
+        <p className="text-secondary small mb-0">{user?.email}</p>
+      </div>
 
-      <form onSubmit={savePersonal} className="card space-y-3">
-        <h2 className="font-semibold">{t('profile.personal')}</h2>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <label className="label" htmlFor="ad">{t('stylists.name')}</label>
-            <input id="ad" className="input" value={personal.ad} onChange={(e) => setPersonal({ ...personal, ad: e.target.value })} required />
-          </div>
-          <div>
-            <label className="label" htmlFor="soyad">{t('stylists.surname')}</label>
-            <input id="soyad" className="input" value={personal.soyad} onChange={(e) => setPersonal({ ...personal, soyad: e.target.value })} required />
+      {message && <div className="alert alert-success mb-0">{message}</div>}
+      {error && <div className="alert alert-danger mb-0">{error}</div>}
+
+      <form onSubmit={savePersonal} className="card shadow-sm border-0">
+        <div className="card-body">
+          <h2 className="h6 fw-semibold mb-3">{t('profile.personal')}</h2>
+          <div className="row g-3">
+            <div className="col-md-6">
+              <label className="form-label small" htmlFor="ad">{t('stylists.name')}</label>
+              <input id="ad" className="form-control" value={personal.ad} onChange={(e) => setPersonal({ ...personal, ad: e.target.value })} required />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label small" htmlFor="soyad">{t('stylists.surname')}</label>
+              <input id="soyad" className="form-control" value={personal.soyad} onChange={(e) => setPersonal({ ...personal, soyad: e.target.value })} required />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label small" htmlFor="telefon">{t('stylists.phone')}</label>
+              <input id="telefon" className="form-control" value={personal.telefon} onChange={(e) => setPersonal({ ...personal, telefon: e.target.value })} required />
+            </div>
+            <div className="col-12">
+              <button type="submit" className="btn btn-primary">{t('profile.savePersonal')}</button>
+            </div>
           </div>
         </div>
-        <div>
-          <label className="label" htmlFor="telefon">{t('stylists.phone')}</label>
-          <input id="telefon" className="input" value={personal.telefon} onChange={(e) => setPersonal({ ...personal, telefon: e.target.value })} required />
-        </div>
-        <p className="text-sm text-slate-500">{user?.email}</p>
-        <button type="submit" className="btn-primary">{t('profile.savePersonal')}</button>
       </form>
 
       {stylist && (
-        <form onSubmit={saveStylist} className="card space-y-3">
-          <h2 className="font-semibold">{t('profile.stylistInfo')}</h2>
-          <div>
-            <label className="label" htmlFor="bio">{t('stylists.bio')}</label>
-            <textarea id="bio" className="input" rows={4} value={stylist.bio} onChange={(e) => setStylist({ ...stylist, bio: e.target.value })} />
+        <form onSubmit={saveStylist} className="card shadow-sm border-0">
+          <div className="card-body">
+            <h2 className="h6 fw-semibold mb-3">{t('profile.stylistInfo')}</h2>
+            <div className="row g-3">
+              <div className="col-12">
+                <label className="form-label small" htmlFor="bio">{t('stylists.bio')}</label>
+                <textarea id="bio" rows={4} className="form-control" value={stylist.bio} onChange={(e) => setStylist({ ...stylist, bio: e.target.value })} />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label small" htmlFor="slot">{t('stylists.slot')}</label>
+                <input id="slot" type="number" min={15} max={120} className="form-control" value={stylist.slotDakika} onChange={(e) => setStylist({ ...stylist, slotDakika: Number(e.target.value) })} />
+              </div>
+              <div className="col-12">
+                <button type="submit" className="btn btn-primary">{t('common.save')}</button>
+              </div>
+            </div>
           </div>
-          <div>
-            <label className="label" htmlFor="slot">{t('stylists.slot')}</label>
-            <input id="slot" type="number" min={15} max={120} className="input" value={stylist.slotDakika} onChange={(e) => setStylist({ ...stylist, slotDakika: Number(e.target.value) })} />
-          </div>
-          <button type="submit" className="btn-primary">{t('common.save')}</button>
         </form>
       )}
 
-      <form onSubmit={changePassword} className="card space-y-3">
-        <h2 className="font-semibold">{t('profile.password')}</h2>
-        <div>
-          <label className="label" htmlFor="cur">{t('profile.currentPassword')}</label>
-          <input id="cur" type="password" className="input" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} required />
+      <form onSubmit={changePassword} className="card shadow-sm border-0">
+        <div className="card-body">
+          <h2 className="h6 fw-semibold mb-3">{t('profile.password')}</h2>
+          <div className="row g-3">
+            <div className="col-12">
+              <label className="form-label small" htmlFor="cur">{t('profile.currentPassword')}</label>
+              <input id="cur" type="password" className="form-control" autoComplete="current-password" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} required />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label small" htmlFor="new">{t('profile.newPassword')}</label>
+              <input id="new" type="password" minLength={8} autoComplete="new-password" className="form-control" value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} required />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label small" htmlFor="rep">{t('profile.newPasswordRepeat')}</label>
+              <input id="rep" type="password" minLength={8} autoComplete="new-password" className="form-control" value={pw.repeat} onChange={(e) => setPw({ ...pw, repeat: e.target.value })} required />
+            </div>
+            <div className="col-12">
+              <button type="submit" className="btn btn-outline-primary">{t('profile.changePassword')}</button>
+            </div>
+          </div>
         </div>
-        <div>
-          <label className="label" htmlFor="new">{t('profile.newPassword')}</label>
-          <input id="new" type="password" minLength={8} className="input" value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} required />
-        </div>
-        <div>
-          <label className="label" htmlFor="rep">{t('profile.newPasswordRepeat')}</label>
-          <input id="rep" type="password" minLength={8} className="input" value={pw.repeat} onChange={(e) => setPw({ ...pw, repeat: e.target.value })} required />
-        </div>
-        <button type="submit" className="btn-primary">{t('profile.changePassword')}</button>
       </form>
-
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      {message && <p className="text-sm text-green-700">{message}</p>}
     </div>
   );
 }

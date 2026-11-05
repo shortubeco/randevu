@@ -1,25 +1,117 @@
-@import "tailwindcss";
+/* Bootstrap üzerine küçük uyarlamalar. */
 
-@layer components {
-  .btn {
-    @apply inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium transition disabled:opacity-50;
-  }
-  .btn-primary {
-    @apply inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium transition disabled:opacity-50 bg-slate-900 text-white hover:bg-slate-700;
-  }
-  .btn-danger {
-    @apply inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium transition disabled:opacity-50 bg-red-600 text-white hover:bg-red-500;
-  }
-  .btn-ghost {
-    @apply inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium transition disabled:opacity-50 border border-slate-300 bg-white text-slate-700 hover:bg-slate-50;
-  }
-  .input {
-    @apply w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-slate-900 focus:outline-none;
-  }
-  .label {
-    @apply mb-1 block text-sm font-medium text-slate-700;
-  }
-  .card {
-    @apply rounded-lg border border-slate-200 bg-white p-4 shadow-sm;
-  }
+body {
+  background-color: #f4f6f9;
+}
+
+/* Kenar çubuğu */
+.app-sidebar {
+  width: 250px;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #14213d 0%, #1b2d52 100%);
+}
+
+.app-sidebar .nav-link {
+  color: rgba(255, 255, 255, 0.78);
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.95rem;
+}
+
+.app-sidebar .nav-link:hover {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.app-sidebar .nav-link.active {
+  color: #fff;
+  background-color: rgba(13, 110, 253, 0.85);
+}
+
+.app-brand {
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.app-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* KPI kartları */
+.kpi-card {
+  border: 0;
+  border-left: 4px solid var(--kpi-color, #0d6efd);
+}
+
+.kpi-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #14213d;
+}
+
+.kpi-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6c757d;
+}
+
+/* Tek seri çubuk grafik */
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 180px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.bar-col {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.bar-value {
+  font-size: 0.68rem;
+  color: #6c757d;
+  margin-bottom: 4px;
+  white-space: nowrap;
+}
+
+.bar {
+  width: 100%;
+  border-radius: 6px 6px 0 0;
+  transition: opacity 0.15s;
+}
+
+.bar-col:hover .bar {
+  opacity: 0.75;
+}
+
+.bar-labels {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.bar-labels span {
+  flex: 1;
+  text-align: center;
+  font-size: 0.7rem;
+  color: #6c757d;
+}
+
+/* Durum ilerleme çubukları */
+.progress-thin {
+  height: 8px;
+}
+
+.page-title {
+  font-weight: 700;
+  color: #14213d;
 }

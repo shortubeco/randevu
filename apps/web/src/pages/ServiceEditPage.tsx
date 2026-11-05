@@ -27,12 +27,7 @@ export default function ServiceEditPage() {
     try {
       await api(`/admin/services/${id}`, {
         method: 'PATCH',
-        body: JSON.stringify({
-          ad: form.ad,
-          sureDk: Number(form.sureDk),
-          fiyat: Number(form.fiyat),
-          aktif: form.aktif,
-        }),
+        body: JSON.stringify({ ad: form.ad, sureDk: Number(form.sureDk), fiyat: Number(form.fiyat), aktif: form.aktif }),
       });
       setMessage(t('services.saved'));
     } catch (err) {
@@ -43,38 +38,42 @@ export default function ServiceEditPage() {
   }
 
   return (
-    <div className="max-w-2xl space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-900">{t('services.editTitle')}</h1>
-        <Link to="/hizmetler" className="btn-ghost">{t('services.back')}</Link>
+    <div className="vstack gap-4" style={{ maxWidth: 720 }}>
+      <div className="d-flex justify-content-between align-items-center">
+        <h1 className="h3 page-title mb-0">{t('services.editTitle')}</h1>
+        <Link to="/hizmetler" className="btn btn-outline-secondary">{t('services.back')}</Link>
       </div>
 
-      {!form && !error && <p className="text-sm text-slate-500">{t('common.loading')}</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {!form && !error && <p className="text-secondary">{t('common.loading')}</p>}
+      {error && <div className="alert alert-danger mb-0">{error}</div>}
 
       {form && (
-        <form onSubmit={onSubmit} className="card grid gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <label className="label" htmlFor="ad">{t('services.name')}</label>
-            <input id="ad" className="input" value={form.ad} onChange={(e) => setForm({ ...form, ad: e.target.value })} required />
-          </div>
-          <div>
-            <label className="label" htmlFor="sure">{t('services.duration')}</label>
-            <input id="sure" type="number" min={5} max={480} className="input" value={form.sureDk} onChange={(e) => setForm({ ...form, sureDk: Number(e.target.value) })} required />
-          </div>
-          <div>
-            <label className="label" htmlFor="fiyat">{t('services.price')}</label>
-            <input id="fiyat" type="number" min={0} step="0.01" className="input" value={form.fiyat} onChange={(e) => setForm({ ...form, fiyat: Number(e.target.value) })} required />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={form.aktif} onChange={(e) => setForm({ ...form, aktif: e.target.checked })} />
-              {t('common.active')}
-            </label>
-          </div>
-          <div className="sm:col-span-2 flex items-center gap-3">
-            <button type="submit" className="btn-primary" disabled={saving}>{t('common.save')}</button>
-            {message && <span className="text-sm text-green-700">{message}</span>}
+        <form onSubmit={onSubmit} className="card shadow-sm border-0">
+          <div className="card-body">
+            <div className="row g-3">
+              <div className="col-12">
+                <label className="form-label small" htmlFor="ad">{t('services.name')}</label>
+                <input id="ad" className="form-control" value={form.ad} onChange={(e) => setForm({ ...form, ad: e.target.value })} required />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label small" htmlFor="sure">{t('services.duration')}</label>
+                <input id="sure" type="number" min={5} max={480} className="form-control" value={form.sureDk} onChange={(e) => setForm({ ...form, sureDk: Number(e.target.value) })} required />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label small" htmlFor="fiyat">{t('services.price')}</label>
+                <input id="fiyat" type="number" min={0} step="0.01" className="form-control" value={form.fiyat} onChange={(e) => setForm({ ...form, fiyat: Number(e.target.value) })} required />
+              </div>
+              <div className="col-12">
+                <div className="form-check form-switch">
+                  <input id="aktif" className="form-check-input" type="checkbox" checked={form.aktif} onChange={(e) => setForm({ ...form, aktif: e.target.checked })} />
+                  <label className="form-check-label" htmlFor="aktif">{t('common.active')}</label>
+                </div>
+              </div>
+              <div className="col-12 d-flex align-items-center gap-3">
+                <button type="submit" className="btn btn-primary" disabled={saving}>{t('common.save')}</button>
+                {message && <span className="text-success small">{message}</span>}
+              </div>
+            </div>
           </div>
         </form>
       )}

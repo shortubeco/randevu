@@ -18,6 +18,7 @@ export default function CustomersPage() {
   const { t, i18n } = useTranslation();
   const [rows, setRows] = useState<Customer[] | null>(null);
   const [error, setError] = useState('');
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     api<Customer[]>('/admin/customers')
@@ -25,40 +26,63 @@ export default function CustomersPage() {
       .catch((err) => setError(err instanceof ApiError ? err.message : t('common.error')));
   }, [t]);
 
-  return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold text-slate-900">{t('customers.title')}</h1>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+  const q = query.trim().toLowerCase();
+  const filtered = rows?.filter(
+    (c) => !q || `${c.ad} ${c.soyad} ${c.telefon} ${c.email}`.toLowerCase().includes(q),
+  );
 
-      <div className="card overflow-x-auto p-0">
-        {rows === null ? (
-          <p className="p-4 text-sm text-slate-500">{t('common.loading')}</p>
-        ) : rows.length === 0 ? (
-          <p className="p-4 text-sm text-slate-500">{t('common.empty')}</p>
-        ) : (
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-left text-slate-600">
-              <tr>
-                <th className="px-3 py-2">{t('customers.name')}</th>
-                <th className="px-3 py-2">{t('customers.phone')}</th>
-                <th className="px-3 py-2">{t('customers.email')}</th>
-                <th className="px-3 py-2">{t('customers.count')}</th>
-                <th className="px-3 py-2">{t('customers.registered')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((c) => (
-                <tr key={c.id} className="border-t border-slate-100">
-                  <td className="px-3 py-2 font-medium">{c.ad} {c.soyad}</td>
-                  <td className="px-3 py-2">{c.telefon}</td>
-                  <td className="px-3 py-2">{c.email}</td>
-                  <td className="px-3 py-2">{c.randevuSayisi}</td>
-                  <td className="px-3 py-2">{formatDate(c.createdAt, i18n.language)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+  return (
+    <div className="vstack gap-4">
+      <div className="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <h1 className="h3 page-title mb-0">{t('customers.title')}</h1>
+        <input
+          type="search"
+          className="form-control"
+          style={{ maxWidth: 280 }}
+          placeholder={t('common.filter')}
+          aria-label={t('common.filter')}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+      </div>
+
+      {error && <div className="alert alert-danger mb-0">{error}</div>}
+
+      <div className="card shadow-sm border-0">
+        <div className="card-body p-0">
+          {filtered === undefined ? (
+            <p className="p-4 text-secondary mb-0">{t('common.loading')}</p>
+          ) : filtered.length === 0 ? (
+            <p className="p-4 text-secondary mb-0">{t('common.empty')}</p>
+          ) : (
+            <div className="table-responsive">
+              <table className="table table-hover align-middle mb-0">
+                <thead className="table-light">
+                  <tr>
+                    <th>{t('customers.name')}</th>
+                    <th>{t('customers.phone')}</th>
+                    <th>{t('customers.email')}</th>
+                    <th className="text-center">{t('customers.count')}</th>
+                    <th>{t('customers.registered')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((c) => (
+                    <tr key={c.id}>
+                      <td className="fw-semibold">{c.ad} {c.soyad}</td>
+                      <td>{c.telefon}</td>
+                      <td className="text-secondary">{c.email}</td>
+                      <td className="text-center">
+                        <span className="badge text-bg-light border">{c.randevuSayisi}</span>
+                      </td>
+                      <td>{formatDate(c.createdAt, i18n.language)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

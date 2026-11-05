@@ -2,23 +2,34 @@ import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, ApiError } from '../api/client';
 import { dayEndIso, dayStartIso, todayIstanbul } from '../lib/format';
+import type { AppointmentStatus } from '../types';
 
 interface ReportData {
-  byStatus: { status: string; adet: number }[];
+  byStatus: { status: AppointmentStatus; adet: number }[];
   byStylist: { stylistId: number; ad: string; soyad: string; toplam: number; tamamlanan: number; ciro: number }[];
   totalRevenue: number;
 }
+
+const BAR_STATUS: Record<AppointmentStatus, string> = {
+  BEKLIYOR: 'bg-warning',
+  ONAYLANDI: 'bg-primary',
+  TAMAMLANDI: 'bg-success',
+  GELMEDI: 'bg-dark',
+  IPTAL: 'bg-danger',
+};
 
 function monthStart(): string {
   return `${todayIstanbul().slice(0, 8)}01`;
 }
 
 export default function ReportsPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [from, setFrom] = useState(monthStart());
   const [to, setTo] = useState(todayIstanbul());
   const [data, setData] = useState<ReportData | null>(null);
   const [error, setError] = useState('');
+
+  const money = new Intl.NumberFormat(i18n.language === 'en' ? 'en-GB' : 'tr-TR', { style: 'currency', currency: 'TRY' });
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -35,66 +46,91 @@ export default function ReportsPage() {
     }
   }
 
-  return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold text-slate-900">{t('reports.title')}</h1>
+  const statusMax = Math.max(1, ...(data?.byStatus.map((s) => s.adet) ?? [1]));
 
-      <form onSubmit={onSubmit} className="card flex flex-wrap items-end gap-3">
-        <div>
-          <label className="label" htmlFor="from">{t('common.from')}</label>
-          <input id="from" type="date" className="input" value={from} onChange={(e) => setFrom(e.target.value)} required />
+  return (
+    <div className="vstack gap-4">
+      <h1 className="h3 page-title mb-0">{t('reports.title')}</h1>
+
+      <form onSubmit={onSubmit} className="card shadow-sm border-0">
+        <div className="card-body d-flex flex-wrap align-items-end gap-3">
+          <div>
+            <label className="form-label small fw-semibold" htmlFor="from">{t('common.from')}</label>
+            <input id="from" type="date" className="form-control" value={from} onChange={(e) => setFrom(e.target.value)} required />
+          </div>
+          <div>
+            <label className="form-label small fw-semibold" htmlFor="to">{t('common.to')}</label>
+            <input id="to" type="date" className="form-control" value={to} onChange={(e) => setTo(e.target.value)} required />
+          </div>
+          <button type="submit" className="btn btn-primary">
+            <i className="bi bi-search me-1" aria-hidden="true" />
+            {t('reports.run')}
+          </button>
         </div>
-        <div>
-          <label className="label" htmlFor="to">{t('common.to')}</label>
-          <input id="to" type="date" className="input" value={to} onChange={(e) => setTo(e.target.value)} required />
-        </div>
-        <button type="submit" className="btn-primary">{t('reports.run')}</button>
       </form>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <div className="alert alert-danger mb-0">{error}</div>}
 
       {data && (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className="card space-y-3">
-            <h2 className="font-semibold">{t('reports.byStatus')}</h2>
-            {data.byStatus.length === 0 ? (
-              <p className="text-sm text-slate-500">{t('common.empty')}</p>
-            ) : (
-              <table className="min-w-full text-sm">
-                <tbody>
-                  {data.byStatus.map((r) => (
-                    <tr key={r.status} className="border-t border-slate-100">
-                      <td className="px-2 py-1.5">{t(`status.${r.status}`)}</td>
-                      <td className="px-2 py-1.5 text-right font-medium">{r.adet}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+        <div className="row g-4">
+          <div className="col-lg-5">
+            <div className="card shadow-sm border-0 h-100">
+              <div className="card-body">
+                <h2 className="h6 fw-semibold mb-3">{t('reports.byStatus')}</h2>
+                {data.byStatus.length === 0 ? (
+                  <p className="text-secondary small mb-0">{t('common.empty')}</p>
+                ) : (
+                  <div className="vstack gap-3">
+                    {data.byStatus.map((r) => (
+                      <div key={r.status}>
+                        <div className="d-flex justify-content-between small mb-1">
+                          <span>{t(`status.${r.status}`)}</span>
+                          <span className="fw-semibold">{r.adet}</span>
+                        </div>
+                        <div className="progress progress-thin">
+                          <div className={`progress-bar ${BAR_STATUS[r.status]}`} style={{ width: `${(r.adet / statusMax) * 100}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
-          <div className="card space-y-3">
-            <h2 className="font-semibold">{t('reports.totalRevenue')}: {data.totalRevenue.toFixed(2)} ₺</h2>
-            <table className="min-w-full text-sm">
-              <thead className="text-left text-slate-600">
-                <tr>
-                  <th className="px-2 py-1.5">{t('reports.stylist')}</th>
-                  <th className="px-2 py-1.5 text-right">{t('reports.total')}</th>
-                  <th className="px-2 py-1.5 text-right">{t('reports.completed')}</th>
-                  <th className="px-2 py-1.5 text-right">{t('reports.revenue')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.byStylist.map((r) => (
-                  <tr key={r.stylistId} className="border-t border-slate-100">
-                    <td className="px-2 py-1.5">{r.ad} {r.soyad}</td>
-                    <td className="px-2 py-1.5 text-right">{r.toplam}</td>
-                    <td className="px-2 py-1.5 text-right">{r.tamamlanan}</td>
-                    <td className="px-2 py-1.5 text-right">{Number(r.ciro).toFixed(2)} ₺</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="col-lg-7">
+            <div className="card shadow-sm border-0 h-100">
+              <div className="card-body">
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h2 className="h6 fw-semibold mb-0">{t('reports.byStylist')}</h2>
+                  <span className="badge text-bg-success fs-6">
+                    {t('reports.totalRevenue')}: {money.format(data.totalRevenue)}
+                  </span>
+                </div>
+                <div className="table-responsive">
+                  <table className="table table-hover align-middle mb-0 small">
+                    <thead className="table-light">
+                      <tr>
+                        <th>{t('reports.stylist')}</th>
+                        <th className="text-end">{t('reports.total')}</th>
+                        <th className="text-end">{t('reports.completed')}</th>
+                        <th className="text-end">{t('reports.revenue')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.byStylist.map((r) => (
+                        <tr key={r.stylistId}>
+                          <td className="fw-semibold">{r.ad} {r.soyad}</td>
+                          <td className="text-end">{r.toplam}</td>
+                          <td className="text-end">{r.tamamlanan}</td>
+                          <td className="text-end">{money.format(Number(r.ciro))}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

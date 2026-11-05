@@ -6,18 +6,19 @@ import i18n from '../i18n';
 interface NavItem {
   to: string;
   labelKey: string;
+  icon: string;
   roles: Role[];
 }
 
 const NAV: NavItem[] = [
-  { to: '/', labelKey: 'nav.dashboard', roles: ['ADMIN', 'KUAFOR'] },
-  { to: '/randevular', labelKey: 'nav.appointments', roles: ['ADMIN', 'KUAFOR'] },
-  { to: '/kuaforler', labelKey: 'nav.stylists', roles: ['ADMIN'] },
-  { to: '/hizmetler', labelKey: 'nav.services', roles: ['ADMIN'] },
-  { to: '/musteriler', labelKey: 'nav.customers', roles: ['ADMIN'] },
-  { to: '/raporlar', labelKey: 'nav.reports', roles: ['ADMIN'] },
-  { to: '/calisma', labelKey: 'nav.schedule', roles: ['KUAFOR'] },
-  { to: '/profil', labelKey: 'nav.profile', roles: ['ADMIN', 'KUAFOR'] },
+  { to: '/', labelKey: 'nav.dashboard', icon: 'bi-speedometer2', roles: ['ADMIN', 'KUAFOR'] },
+  { to: '/randevular', labelKey: 'nav.appointments', icon: 'bi-calendar-check', roles: ['ADMIN', 'KUAFOR'] },
+  { to: '/kuaforler', labelKey: 'nav.stylists', icon: 'bi-scissors', roles: ['ADMIN'] },
+  { to: '/hizmetler', labelKey: 'nav.services', icon: 'bi-list-check', roles: ['ADMIN'] },
+  { to: '/musteriler', labelKey: 'nav.customers', icon: 'bi-people', roles: ['ADMIN'] },
+  { to: '/raporlar', labelKey: 'nav.reports', icon: 'bi-bar-chart-line', roles: ['ADMIN'] },
+  { to: '/calisma', labelKey: 'nav.schedule', icon: 'bi-clock-history', roles: ['KUAFOR'] },
+  { to: '/profil', labelKey: 'nav.profile', icon: 'bi-person-circle', roles: ['ADMIN', 'KUAFOR'] },
 ];
 
 export default function Layout() {
@@ -31,40 +32,36 @@ export default function Layout() {
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-100">
-      <aside className="flex w-56 flex-col border-r border-slate-200 bg-white p-4">
-        <div className="mb-6 text-lg font-bold text-slate-900">{t('app.title')}</div>
-        <nav className="flex flex-1 flex-col gap-1">
+    <div className="d-flex">
+      <aside className="app-sidebar d-flex flex-column p-3 position-sticky top-0 align-self-start" style={{ height: '100vh' }}>
+        <div className="app-brand fs-5 px-2 py-3 mb-2">
+          <i className="bi bi-scissors me-2" aria-hidden="true" />
+          {t('app.title')}
+        </div>
+        <nav className="nav flex-column gap-1">
           {NAV.filter((n) => user && n.roles.includes(user.role)).map((n) => (
-            <NavLink
-              key={n.to}
-              to={n.to}
-              end={n.to === '/'}
-              className={({ isActive }) =>
-                `rounded-md px-3 py-2 text-sm ${
-                  isActive ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'
-                }`
-              }
-            >
+            <NavLink key={n.to} to={n.to} end={n.to === '/'} className="nav-link">
+              <i className={`bi ${n.icon} me-2`} aria-hidden="true" />
               {t(n.labelKey)}
             </NavLink>
           ))}
         </nav>
-        <div className="mt-4 space-y-2 border-t border-slate-200 pt-4 text-sm">
-          <div className="truncate text-slate-500">
+        <div className="mt-auto pt-3 border-top border-secondary-subtle">
+          <div className="text-white-50 small px-2 mb-2 text-truncate">
             {user?.ad} {user?.soyad}
           </div>
-          <div className="flex gap-2">
-            <button className="btn-ghost flex-1" onClick={switchLang}>
+          <div className="d-flex gap-2">
+            <button className="btn btn-sm btn-outline-light flex-fill" onClick={switchLang}>
               {i18n.language === 'tr' ? 'EN' : 'TR'}
             </button>
-            <button className="btn-ghost flex-1" onClick={logout}>
+            <button className="btn btn-sm btn-light flex-fill" onClick={logout}>
+              <i className="bi bi-box-arrow-right me-1" aria-hidden="true" />
               {t('nav.logout')}
             </button>
           </div>
         </div>
       </aside>
-      <main className="flex-1 p-6">
+      <main className="app-content p-4">
         <Outlet />
       </main>
     </div>

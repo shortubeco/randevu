@@ -10,14 +10,15 @@ Monorepo: `apps/api` (NestJS) ve `apps/web` (web paneli) var. `apps/mobile` (Exp
 
 ## Web paneli (`apps/web`)
 
-- Stack: Vite + React + TypeScript, Tailwind CSS v4 (`@tailwindcss/vite`), react-router-dom v6, react-i18next (TR varsayılan, EN). Komutlar `apps/web` içinde: `npm run dev` (http://localhost:5173), `npm run build` (`tsc -b && vite build`, çıktı `dist/`).
+- Stack: Vite + React + TypeScript, Bootstrap 5 (`bootstrap`) + Bootstrap Icons (`bootstrap-icons`), react-router-dom v6, react-i18next (TR varsayılan, EN). Tailwind kaldırıldı; iki CSS çatısı birlikte kullanılmaz. Komutlar `apps/web` içinde: `npm run dev` (http://localhost:5173), `npm run build` (`tsc -b && vite build`, çıktı `dist/`).
 - Geliştirmede `/api` istekleri `vite.config.ts` proxy'siyle canlı API'ye gider (`https://api.sozcutvcanli.com`). Üretimde `.env.production` içindeki `VITE_API_URL` (`https://api.sozcutvcanli.com/api/v1`) kullanılır.
 - `src/api/client.ts`: fetch sarmalayıcı. Access token yalnızca bellekte; refresh token `localStorage` (`rt`) içinde. 401'de bir kez yeniler.
 - `src/auth/AuthContext.tsx`: sayfa yenilenince refresh ile oturumu geri yükler. Rol: `ADMIN | KUAFOR | MUSTERI`.
 - `src/App.tsx`: rotalar. `/` ve `/randevular` (ADMIN ve KUAFOR), `/kuaforler` ve `/hizmetler` (ADMIN), `/calisma` ve `/profil` (KUAFOR). MUSTERI erişemez.
 - `src/i18n/`: `tr.json` ve `en.json`. Yeni metin eklerken iki dosyaya da ekle. Dil tercihi `localStorage` `lang` anahtarında.
 - `src/lib/format.ts`: saatler `Europe/Istanbul` ile gösterilir.
-- Stil sınıfları `src/index.css` içinde (`btn-primary`, `btn-ghost`, `btn-danger`, `input`, `label`, `card`). Tailwind v4'te `@apply` içinde özel sınıf kullanılamaz, yardımcı sınıfları tek tek yaz.
+- Stil: Bootstrap sınıfları doğrudan JSX'te (`card`, `table`, `btn btn-*`, `form-control`, `badge text-bg-*`). `src/index.css` yalnızca küçük uyarlamaları içerir (kenar çubuğu, KPI kartları, `.bar-chart` çubuk grafik). Durum rozetleri renk + metin ile gösterilir.
+- Grafik: `src/components/BarChart.tsx` tek seri, tek eksenli CSS çubuk grafik. Kütüphane yok.
 - `public/.htaccess`: SPA yönlendirmesi (Apache/LiteSpeed).
 - Yayın: `panel.sozcutvcanli.com` (HTTPS). Dosyalar `npm run build` çıktısıyla cPanel'de alt alan adı klasörüne yüklenir. Panel origin'i API'nin `CORS_ORIGINS` listesinde tam olarak `https://` ile yer almalı; `http://` ile açılırsa CORS hatası verir.
 - Sayfalar: `/randevular` (günlük liste, durum işlemleri), `/kuaforler`, `/hizmetler`, `/musteriler`, `/raporlar` (ADMIN), `/calisma` (çoklu çalışma aralığı ve izinler), `/profil` (kişisel bilgi, şifre değiştirme; KUAFOR'a ek olarak kuaför bilgisi).

@@ -44,51 +44,88 @@ export default function ServicesPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold text-slate-900">{t('services.title')}</h1>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+    <div className="vstack gap-4">
+      <h1 className="h3 page-title mb-0">{t('services.title')}</h1>
+      {error && <div className="alert alert-danger mb-0">{error}</div>}
 
-      <form onSubmit={onAdd} className="card grid gap-3 sm:grid-cols-4">
-        <input className="input" placeholder={t('services.name')} value={form.ad} onChange={(e) => setForm({ ...form, ad: e.target.value })} required />
-        <input className="input" type="number" min={5} max={480} placeholder={t('services.duration')} value={form.sureDk} onChange={(e) => setForm({ ...form, sureDk: Number(e.target.value) })} required />
-        <input className="input" type="number" min={0} step="0.01" placeholder={t('services.price')} value={form.fiyat} onChange={(e) => setForm({ ...form, fiyat: Number(e.target.value) })} required />
-        <button type="submit" className="btn-primary">{t('services.new')}</button>
+      <form onSubmit={onAdd} className="card shadow-sm border-0">
+        <div className="card-body">
+          <div className="row g-2 align-items-end">
+            <div className="col-md-5">
+              <label className="form-label small" htmlFor="sad">{t('services.name')}</label>
+              <input id="sad" className="form-control" value={form.ad} onChange={(e) => setForm({ ...form, ad: e.target.value })} required />
+            </div>
+            <div className="col-md-2">
+              <label className="form-label small" htmlFor="ssure">{t('services.duration')}</label>
+              <input id="ssure" type="number" min={5} max={480} className="form-control" value={form.sureDk} onChange={(e) => setForm({ ...form, sureDk: Number(e.target.value) })} required />
+            </div>
+            <div className="col-md-3">
+              <label className="form-label small" htmlFor="sfiyat">{t('services.price')}</label>
+              <input id="sfiyat" type="number" min={0} step="0.01" className="form-control" value={form.fiyat} onChange={(e) => setForm({ ...form, fiyat: Number(e.target.value) })} required />
+            </div>
+            <div className="col-md-2">
+              <button type="submit" className="btn btn-primary w-100">
+                <i className="bi bi-plus-lg me-1" aria-hidden="true" />
+                {t('services.new')}
+              </button>
+            </div>
+          </div>
+        </div>
       </form>
 
-      <div className="card overflow-x-auto p-0">
-        {services === null ? (
-          <p className="p-4 text-sm text-slate-500">{t('common.loading')}</p>
-        ) : services.length === 0 ? (
-          <p className="p-4 text-sm text-slate-500">{t('common.empty')}</p>
-        ) : (
-          <table className="min-w-full text-sm">
-            <tbody>
-              {services.map((s) => (
-                <tr key={s.id} className="border-t border-slate-100">
-                  <td className="px-3 py-2 font-medium">{s.ad}</td>
-                  <td className="px-3 py-2">{s.sureDk} dk</td>
-                  <td className="px-3 py-2">{s.fiyat} ₺</td>
-                  <td className="px-3 py-2">{t(s.aktif ? 'common.active' : 'common.passive')}</td>
-                  <td className="space-x-2 whitespace-nowrap px-3 py-2">
-                    <button
-                      className="btn-ghost"
-                      onClick={() => run(() => api(`/admin/services/${s.id}`, { method: 'PATCH', body: JSON.stringify({ aktif: !s.aktif }) }))}
-                    >
-                      {s.aktif ? t('common.passive') : t('common.active')}
-                    </button>
-                    <Link className="btn-ghost" to={`/hizmetler/${s.id}`}>{t('services.edit')}</Link>
-                    <button
-                      className="btn-danger"
-                      onClick={() => window.confirm(t('common.confirmDelete')) && run(() => api(`/admin/services/${s.id}`, { method: 'DELETE' }))}
-                    >
-                      {t('common.delete')}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+      <div className="card shadow-sm border-0">
+        <div className="card-body p-0">
+          {services === null ? (
+            <p className="p-4 text-secondary mb-0">{t('common.loading')}</p>
+          ) : services.length === 0 ? (
+            <p className="p-4 text-secondary mb-0">{t('common.empty')}</p>
+          ) : (
+            <div className="table-responsive">
+              <table className="table table-hover align-middle mb-0">
+                <thead className="table-light">
+                  <tr>
+                    <th>{t('services.name')}</th>
+                    <th>{t('services.duration')}</th>
+                    <th>{t('services.price')}</th>
+                    <th>{t('common.active')}</th>
+                    <th className="text-end">{t('appointments.actions')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {services.map((s) => (
+                    <tr key={s.id}>
+                      <td className="fw-semibold">{s.ad}</td>
+                      <td>{s.sureDk} dk</td>
+                      <td>{Number(s.fiyat).toFixed(2)} ₺</td>
+                      <td>
+                        <span className={`badge ${s.aktif ? 'text-bg-success' : 'text-bg-secondary'}`}>
+                          {t(s.aktif ? 'common.active' : 'common.passive')}
+                        </span>
+                      </td>
+                      <td className="text-end">
+                        <div className="d-flex justify-content-end flex-wrap gap-1">
+                          <button
+                            className="btn btn-sm btn-outline-secondary"
+                            onClick={() => run(() => api(`/admin/services/${s.id}`, { method: 'PATCH', body: JSON.stringify({ aktif: !s.aktif }) }))}
+                          >
+                            {s.aktif ? t('common.passive') : t('common.active')}
+                          </button>
+                          <Link className="btn btn-sm btn-outline-dark" to={`/hizmetler/${s.id}`}>{t('services.edit')}</Link>
+                          <button
+                            className="btn btn-sm btn-outline-danger"
+                            onClick={() => window.confirm(t('common.confirmDelete')) && run(() => api(`/admin/services/${s.id}`, { method: 'DELETE' }))}
+                          >
+                            {t('common.delete')}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

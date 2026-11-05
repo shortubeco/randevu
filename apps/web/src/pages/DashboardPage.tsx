@@ -44,6 +44,23 @@ interface Dashboard {
 
 const STATUSES: AppointmentStatus[] = ['BEKLIYOR', 'ONAYLANDI', 'TAMAMLANDI', 'GELMEDI', 'IPTAL'];
 
+// Durum rozetleri: renk yanında metin de gösterilir.
+const BADGE: Record<AppointmentStatus, string> = {
+  BEKLIYOR: 'text-bg-warning',
+  ONAYLANDI: 'text-bg-primary',
+  TAMAMLANDI: 'text-bg-success',
+  GELMEDI: 'text-bg-dark',
+  IPTAL: 'text-bg-danger',
+};
+
+const BAR_STATUS: Record<AppointmentStatus, string> = {
+  BEKLIYOR: 'bg-warning',
+  ONAYLANDI: 'bg-primary',
+  TAMAMLANDI: 'bg-success',
+  GELMEDI: 'bg-dark',
+  IPTAL: 'bg-danger',
+};
+
 export default function DashboardPage() {
   const { t, i18n } = useTranslation();
   const [data, setData] = useState<Dashboard | null>(null);
@@ -63,23 +80,23 @@ export default function DashboardPage() {
     return new Date(y, m - 1, 1).toLocaleDateString(lang === 'en' ? 'en-GB' : 'tr-TR', { month: 'short' });
   };
 
-  if (error) return <p className="text-sm text-red-600">{error}</p>;
-  if (!data) return <p className="text-sm text-slate-500">{t('common.loading')}</p>;
+  if (error) return <div className="alert alert-danger">{error}</div>;
+  if (!data) return <div className="text-secondary">{t('common.loading')}</div>;
 
   const isAdmin = data.scope === 'ADMIN';
   const k = data.kpi;
 
-  const tiles: { label: string; value: string }[] = [
-    { label: t('dashboard.today'), value: count(k.bugun) },
-    { label: t('dashboard.pending'), value: count(k.bekleyen) },
-    { label: t('dashboard.monthCompleted'), value: count(k.buAyTamamlanan) },
-    { label: t('dashboard.monthRevenue'), value: money.format(k.buAyCiro) },
+  const tiles: { label: string; value: string; color: string; icon: string }[] = [
+    { label: t('dashboard.today'), value: count(k.bugun), color: '#0d6efd', icon: 'bi-calendar-day' },
+    { label: t('dashboard.pending'), value: count(k.bekleyen), color: '#ffc107', icon: 'bi-hourglass-split' },
+    { label: t('dashboard.monthCompleted'), value: count(k.buAyTamamlanan), color: '#198754', icon: 'bi-check2-circle' },
+    { label: t('dashboard.monthRevenue'), value: money.format(k.buAyCiro), color: '#20c997', icon: 'bi-cash-stack' },
   ];
   if (isAdmin) {
     tiles.push(
-      { label: t('dashboard.customers'), value: count(k.musteri ?? 0) },
-      { label: t('dashboard.stylists'), value: count(k.kuafor ?? 0) },
-      { label: t('dashboard.services'), value: count(k.hizmet ?? 0) },
+      { label: t('dashboard.customers'), value: count(k.musteri ?? 0), color: '#6f42c1', icon: 'bi-people' },
+      { label: t('dashboard.stylists'), value: count(k.kuafor ?? 0), color: '#fd7e14', icon: 'bi-scissors' },
+      { label: t('dashboard.services'), value: count(k.hizmet ?? 0), color: '#0dcaf0', icon: 'bi-list-check' },
     );
   }
 
@@ -87,157 +104,214 @@ export default function DashboardPage() {
   const statusCount = (s: AppointmentStatus) => data.statusMonth.find((x) => x.status === s)?.adet ?? 0;
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-slate-900">{t('dashboard.title')}</h1>
+    <div className="vstack gap-4">
+      <div>
+        <h1 className="h3 page-title mb-1">{t('dashboard.title')}</h1>
+        <p className="text-secondary mb-0 small">{formatDate(new Date().toISOString(), lang)}</p>
+      </div>
 
-      <div className={`grid gap-3 ${isAdmin ? 'grid-cols-2 lg:grid-cols-4 xl:grid-cols-7' : 'grid-cols-2 lg:grid-cols-4'}`}>
+      <div className="row g-3">
         {tiles.map((tile) => (
-          <div key={tile.label} className="card">
-            <div className="text-xs text-slate-500">{tile.label}</div>
-            <div className="mt-1 text-xl font-semibold text-slate-900">{tile.value}</div>
+          <div key={tile.label} className={isAdmin ? 'col-6 col-xl' : 'col-6 col-lg-3'}>
+            <div className="card kpi-card shadow-sm h-100" style={{ ['--kpi-color' as string]: tile.color }}>
+              <div className="card-body">
+                <div className="d-flex justify-content-between align-items-start">
+                  <div>
+                    <div className="kpi-label">{tile.label}</div>
+                    <div className="kpi-value mt-1">{tile.value}</div>
+                  </div>
+                  <i className={`bi ${tile.icon} fs-4 opacity-50`} style={{ color: tile.color }} aria-hidden="true" />
+                </div>
+              </div>
+            </div>
           </div>
         ))}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <section className="card space-y-3">
-          <h2 className="font-semibold text-slate-900">{t('dashboard.monthlyCount')}</h2>
-          <BarChart
-            ariaLabel={t('dashboard.monthlyCount')}
-            data={data.monthly.map((m) => ({ label: monthLabel(m.ay), value: m.toplam }))}
-            format={count}
-          />
-        </section>
-        <section className="card space-y-3">
-          <h2 className="font-semibold text-slate-900">{t('dashboard.monthlyRevenue')}</h2>
-          <BarChart
-            ariaLabel={t('dashboard.monthlyRevenue')}
-            data={data.monthly.map((m) => ({ label: monthLabel(m.ay), value: m.ciro }))}
-            format={(n) => money.format(n)}
-          />
-        </section>
+      <div className="row g-4">
+        <div className="col-lg-6">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
+              <h2 className="h6 fw-semibold mb-3">{t('dashboard.monthlyCount')}</h2>
+              <BarChart
+                ariaLabel={t('dashboard.monthlyCount')}
+                data={data.monthly.map((m) => ({ label: monthLabel(m.ay), value: m.toplam }))}
+                format={count}
+                color="#0d6efd"
+              />
+            </div>
+          </div>
+        </div>
+        <div className="col-lg-6">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
+              <h2 className="h6 fw-semibold mb-3">{t('dashboard.monthlyRevenue')}</h2>
+              <BarChart
+                ariaLabel={t('dashboard.monthlyRevenue')}
+                data={data.monthly.map((m) => ({ label: monthLabel(m.ay), value: m.ciro }))}
+                format={(n) => money.format(n)}
+                color="#198754"
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <section className="card space-y-3">
-          <h2 className="font-semibold text-slate-900">{t('dashboard.statusMonth')}</h2>
-          <ul className="space-y-2">
-            {STATUSES.map((s) => {
-              const n = statusCount(s);
-              return (
-                <li key={s} className="text-sm">
-                  <div className="flex justify-between">
-                    <span>{t(`status.${s}`)}</span>
-                    <span className="font-medium">{n}</span>
-                  </div>
-                  <div className="mt-1 h-2 rounded bg-slate-100">
-                    <div className="h-2 rounded bg-slate-700" style={{ width: `${(n / statusMax) * 100}%` }} />
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-
-        <section className="card space-y-3 lg:col-span-2">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-slate-900">{t('dashboard.todayList')}</h2>
-            <Link to="/randevular" className="text-sm text-slate-600 underline">{t('dashboard.viewAll')}</Link>
+      <div className="row g-4">
+        <div className="col-lg-4">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
+              <h2 className="h6 fw-semibold mb-3">{t('dashboard.statusMonth')}</h2>
+              <div className="vstack gap-3">
+                {STATUSES.map((s) => {
+                  const n = statusCount(s);
+                  return (
+                    <div key={s}>
+                      <div className="d-flex justify-content-between small mb-1">
+                        <span>{t(`status.${s}`)}</span>
+                        <span className="fw-semibold">{n}</span>
+                      </div>
+                      <div className="progress progress-thin">
+                        <div className={`progress-bar ${BAR_STATUS[s]}`} style={{ width: `${(n / statusMax) * 100}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
-          {data.bugunList.length === 0 ? (
-            <p className="text-sm text-slate-500">{t('appointments.noneToday')}</p>
-          ) : (
-            <ul className="divide-y divide-slate-100 text-sm">
-              {data.bugunList.map((a) => (
-                <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                  <span className="font-medium">{formatTime(a.baslangic)}</span>
-                  <span className="flex-1">{a.musteriAd} {a.musteriSoyad} · {a.hizmet}</span>
-                  {isAdmin && <span className="text-slate-500">{a.kuaforAd} {a.kuaforSoyad}</span>}
-                  <span className="rounded bg-slate-100 px-2 py-0.5 text-xs">{t(`status.${a.status}`)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        </div>
+
+        <div className="col-lg-8">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <h2 className="h6 fw-semibold mb-0">{t('dashboard.todayList')}</h2>
+                <Link to="/randevular" className="btn btn-sm btn-outline-primary">{t('dashboard.viewAll')}</Link>
+              </div>
+              {data.bugunList.length === 0 ? (
+                <p className="text-secondary small mb-0">{t('appointments.noneToday')}</p>
+              ) : (
+                <div className="table-responsive">
+                  <table className="table table-hover align-middle mb-0 small">
+                    <tbody>
+                      {data.bugunList.map((a) => (
+                        <tr key={a.id}>
+                          <td className="fw-semibold">{formatTime(a.baslangic)}</td>
+                          <td>{a.musteriAd} {a.musteriSoyad}</td>
+                          <td className="text-secondary">{a.hizmet}</td>
+                          {isAdmin && <td className="text-secondary">{a.kuaforAd} {a.kuaforSoyad}</td>}
+                          <td className="text-end">
+                            <span className={`badge ${BADGE[a.status]}`}>{t(`status.${a.status}`)}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {isAdmin && data.kuaforler && data.hizmetler && data.sonMusteriler && (
         <>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <section className="card space-y-3 overflow-x-auto p-4">
-              <div className="flex items-center justify-between">
-                <h2 className="font-semibold text-slate-900">{t('dashboard.stylistsTable')}</h2>
-                <Link to="/kuaforler" className="text-sm text-slate-600 underline">{t('dashboard.viewAll')}</Link>
+          <div className="row g-4">
+            <div className="col-lg-6">
+              <div className="card shadow-sm border-0 h-100">
+                <div className="card-body">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <h2 className="h6 fw-semibold mb-0">{t('dashboard.stylistsTable')}</h2>
+                    <Link to="/kuaforler" className="btn btn-sm btn-outline-primary">{t('dashboard.viewAll')}</Link>
+                  </div>
+                  <div className="table-responsive">
+                    <table className="table table-hover align-middle mb-0 small">
+                      <thead>
+                        <tr className="text-secondary">
+                          <th>{t('stylists.name')}</th>
+                          <th className="text-end">{t('dashboard.appointments')}</th>
+                          <th className="text-end">{t('dashboard.monthRevenue')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.kuaforler.map((s) => (
+                          <tr key={s.id}>
+                            <td>
+                              {s.ad} {s.soyad}{' '}
+                              {!s.isActive && <span className="badge text-bg-secondary ms-1">{t('common.passive')}</span>}
+                            </td>
+                            <td className="text-end">{s.buAy}</td>
+                            <td className="text-end">{money.format(s.ciro)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
-              <table className="min-w-full text-sm">
-                <thead className="text-left text-slate-500">
-                  <tr>
-                    <th className="py-1">{t('stylists.name')}</th>
-                    <th className="py-1 text-right">{t('dashboard.appointments')}</th>
-                    <th className="py-1 text-right">{t('dashboard.monthRevenue')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.kuaforler.map((s) => (
-                    <tr key={s.id} className="border-t border-slate-100">
-                      <td className="py-1.5">
-                        {s.ad} {s.soyad} {!s.isActive && <span className="text-xs text-slate-400">({t('common.passive')})</span>}
-                      </td>
-                      <td className="py-1.5 text-right">{s.buAy}</td>
-                      <td className="py-1.5 text-right">{money.format(s.ciro)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </section>
+            </div>
 
-            <section className="card space-y-3 overflow-x-auto p-4">
-              <div className="flex items-center justify-between">
-                <h2 className="font-semibold text-slate-900">{t('dashboard.servicesTable')}</h2>
-                <Link to="/hizmetler" className="text-sm text-slate-600 underline">{t('dashboard.viewAll')}</Link>
+            <div className="col-lg-6">
+              <div className="card shadow-sm border-0 h-100">
+                <div className="card-body">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <h2 className="h6 fw-semibold mb-0">{t('dashboard.servicesTable')}</h2>
+                    <Link to="/hizmetler" className="btn btn-sm btn-outline-primary">{t('dashboard.viewAll')}</Link>
+                  </div>
+                  <div className="table-responsive">
+                    <table className="table table-hover align-middle mb-0 small">
+                      <thead>
+                        <tr className="text-secondary">
+                          <th>{t('services.name')}</th>
+                          <th className="text-end">{t('dashboard.appointments')}</th>
+                          <th className="text-end">{t('dashboard.monthRevenue')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.hizmetler.map((s) => (
+                          <tr key={s.id}>
+                            <td>
+                              {s.ad}
+                              <div className="text-secondary">{s.sureDk} dk · {money.format(Number(s.fiyat))}</div>
+                            </td>
+                            <td className="text-end">{s.buAy}</td>
+                            <td className="text-end">{money.format(s.ciro)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
-              <table className="min-w-full text-sm">
-                <thead className="text-left text-slate-500">
-                  <tr>
-                    <th className="py-1">{t('services.name')}</th>
-                    <th className="py-1 text-right">{t('dashboard.appointments')}</th>
-                    <th className="py-1 text-right">{t('dashboard.monthRevenue')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.hizmetler.map((s) => (
-                    <tr key={s.id} className="border-t border-slate-100">
-                      <td className="py-1.5">
-                        {s.ad} <span className="text-xs text-slate-400">· {s.sureDk} dk · {money.format(Number(s.fiyat))}</span>
-                      </td>
-                      <td className="py-1.5 text-right">{s.buAy}</td>
-                      <td className="py-1.5 text-right">{money.format(s.ciro)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </section>
+            </div>
           </div>
 
-          <section className="card space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-slate-900">{t('dashboard.recentCustomers')}</h2>
-              <Link to="/musteriler" className="text-sm text-slate-600 underline">{t('dashboard.viewAll')}</Link>
+          <div className="card shadow-sm border-0">
+            <div className="card-body">
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <h2 className="h6 fw-semibold mb-0">{t('dashboard.recentCustomers')}</h2>
+                <Link to="/musteriler" className="btn btn-sm btn-outline-primary">{t('dashboard.viewAll')}</Link>
+              </div>
+              {data.sonMusteriler.length === 0 ? (
+                <p className="text-secondary small mb-0">{t('dashboard.noData')}</p>
+              ) : (
+                <div className="table-responsive">
+                  <table className="table table-hover align-middle mb-0 small">
+                    <tbody>
+                      {data.sonMusteriler.map((c) => (
+                        <tr key={c.id}>
+                          <td className="fw-semibold">{c.ad} {c.soyad}</td>
+                          <td>{c.telefon}</td>
+                          <td className="text-end text-secondary">{t('dashboard.registeredAt')}: {formatDate(c.createdAt, lang)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
-            {data.sonMusteriler.length === 0 ? (
-              <p className="text-sm text-slate-500">{t('dashboard.noData')}</p>
-            ) : (
-              <ul className="divide-y divide-slate-100 text-sm">
-                {data.sonMusteriler.map((c) => (
-                  <li key={c.id} className="flex flex-wrap justify-between gap-2 py-2">
-                    <span className="font-medium">{c.ad} {c.soyad}</span>
-                    <span className="text-slate-500">{c.telefon}</span>
-                    <span className="text-slate-500">{t('dashboard.registeredAt')}: {formatDate(c.createdAt, lang)}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+          </div>
         </>
       )}
     </div>

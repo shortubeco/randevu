@@ -28,22 +28,30 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
-      <form onSubmit={onSubmit} className="card w-full max-w-sm space-y-4">
-        <h1 className="text-xl font-semibold text-slate-900">{t('login.title')}</h1>
-        <div>
-          <label className="label" htmlFor="email">{t('login.email')}</label>
-          <input id="email" type="email" className="input" value={email} onChange={(e) => setEmail(e.target.value)} required />
+    <div className="min-vh-100 d-flex align-items-center justify-content-center p-3" style={{ background: 'linear-gradient(135deg, #14213d 0%, #1b2d52 60%, #0d6efd 140%)' }}>
+      <div className="card border-0 shadow-lg w-100" style={{ maxWidth: 400 }}>
+        <div className="card-body p-4 p-md-5">
+          <div className="text-center mb-4">
+            <div className="display-6 text-primary"><i className="bi bi-scissors" aria-hidden="true" /></div>
+            <h1 className="h4 fw-bold mt-2 mb-0">{t('app.title')}</h1>
+            <p className="text-secondary small mb-0">{t('login.title')}</p>
+          </div>
+          <form onSubmit={onSubmit} className="vstack gap-3">
+            <div>
+              <label className="form-label" htmlFor="email">{t('login.email')}</label>
+              <input id="email" type="email" className="form-control" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+            </div>
+            <div>
+              <label className="form-label" htmlFor="password">{t('login.password')}</label>
+              <input id="password" type="password" className="form-control" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
+            </div>
+            {error && <div className="alert alert-danger py-2 mb-0">{error}</div>}
+            <button type="submit" className="btn btn-primary btn-lg w-100" disabled={busy}>
+              {t('login.submit')}
+            </button>
+          </form>
         </div>
-        <div>
-          <label className="label" htmlFor="password">{t('login.password')}</label>
-          <input id="password" type="password" className="input" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button type="submit" className="btn-primary w-full" disabled={busy}>
-          {t('login.submit')}
-        </button>
-      </form>
+      </div>
     </div>
   );
 }

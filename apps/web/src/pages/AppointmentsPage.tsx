@@ -7,16 +7,24 @@ import type { Appointment, AppointmentStatus } from '../types';
 
 const STATUSES: AppointmentStatus[] = ['BEKLIYOR', 'ONAYLANDI', 'IPTAL', 'TAMAMLANDI', 'GELMEDI'];
 
+const BADGE: Record<AppointmentStatus, string> = {
+  BEKLIYOR: 'text-bg-warning',
+  ONAYLANDI: 'text-bg-primary',
+  IPTAL: 'text-bg-danger',
+  TAMAMLANDI: 'text-bg-success',
+  GELMEDI: 'text-bg-dark',
+};
+
 // Duruma göre gösterilecek işlemler (sunucudaki geçiş kurallarıyla aynı).
-const ACTIONS: Record<AppointmentStatus, { to: AppointmentStatus; key: string; danger?: boolean }[]> = {
+const ACTIONS: Record<AppointmentStatus, { to: AppointmentStatus; key: string; style: string }[]> = {
   BEKLIYOR: [
-    { to: 'ONAYLANDI', key: 'appointments.approve' },
-    { to: 'IPTAL', key: 'appointments.cancel', danger: true },
+    { to: 'ONAYLANDI', key: 'appointments.approve', style: 'btn-success' },
+    { to: 'IPTAL', key: 'appointments.cancel', style: 'btn-outline-danger' },
   ],
   ONAYLANDI: [
-    { to: 'TAMAMLANDI', key: 'appointments.complete' },
-    { to: 'GELMEDI', key: 'appointments.noShow' },
-    { to: 'IPTAL', key: 'appointments.cancel', danger: true },
+    { to: 'TAMAMLANDI', key: 'appointments.complete', style: 'btn-success' },
+    { to: 'GELMEDI', key: 'appointments.noShow', style: 'btn-outline-secondary' },
+    { to: 'IPTAL', key: 'appointments.cancel', style: 'btn-outline-danger' },
   ],
   IPTAL: [],
   TAMAMLANDI: [],
@@ -67,78 +75,87 @@ export default function AppointmentsPage() {
   }
 
   const lang = i18n.language;
+  const isAdmin = user?.role === 'ADMIN';
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold text-slate-900">{t('appointments.title')}</h1>
-
-      <div className="card flex flex-wrap items-end gap-3">
-        <div>
-          <label className="label" htmlFor="date">{t('appointments.date')}</label>
-          <input id="date" type="date" className="input" value={date} onChange={(e) => setDate(e.target.value)} />
-        </div>
-        <div>
-          <label className="label" htmlFor="status">{t('appointments.status')}</label>
-          <select id="status" className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="">{t('common.all')}</option>
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>{t(`status.${s}`)}</option>
-            ))}
-          </select>
-        </div>
-        <button className="btn-ghost" onClick={() => setDate(todayIstanbul())}>{t('appointments.today')}</button>
+    <div className="vstack gap-4">
+      <div>
+        <h1 className="h3 page-title mb-1">{t('appointments.title')}</h1>
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
-
-      <div className="card overflow-x-auto p-0">
-        {rows === null ? (
-          <p className="p-4 text-sm text-slate-500">{t('common.loading')}</p>
-        ) : rows.length === 0 ? (
-          <p className="p-4 text-sm text-slate-500">{t('common.empty')}</p>
-        ) : (
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-left text-slate-600">
-              <tr>
-                <th className="px-3 py-2">{t('appointments.time')}</th>
-                <th className="px-3 py-2">{t('appointments.date')}</th>
-                <th className="px-3 py-2">{t('appointments.customer')}</th>
-                <th className="px-3 py-2">{t('appointments.phone')}</th>
-                <th className="px-3 py-2">{t('appointments.service')}</th>
-                {user?.role === 'ADMIN' && <th className="px-3 py-2">{t('appointments.stylist')}</th>}
-                <th className="px-3 py-2">{t('appointments.status')}</th>
-                <th className="px-3 py-2">{t('appointments.actions')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((a) => (
-                <tr key={a.id} className="border-t border-slate-100">
-                  <td className="px-3 py-2 font-medium">{formatTime(a.baslangic)}</td>
-                  <td className="px-3 py-2">{formatDate(a.baslangic, lang)}</td>
-                  <td className="px-3 py-2">{a.musteriAd} {a.musteriSoyad}</td>
-                  <td className="px-3 py-2">{a.musteriTelefon}</td>
-                  <td className="px-3 py-2">{a.hizmet}</td>
-                  {user?.role === 'ADMIN' && (
-                    <td className="px-3 py-2">{a.kuaforAd} {a.kuaforSoyad}</td>
-                  )}
-                  <td className="px-3 py-2">{t(`status.${a.status}`)}</td>
-                  <td className="space-x-2 whitespace-nowrap px-3 py-2">
-                    {ACTIONS[a.status].map((act) => (
-                      <button
-                        key={act.to}
-                        className={act.danger ? 'btn-danger' : 'btn-ghost'}
-                        onClick={() => changeStatus(a.id, act.to)}
-                      >
-                        {t(act.key)}
-                      </button>
-                    ))}
-                    <button className="btn-ghost" onClick={() => remove(a.id)}>{t('common.delete')}</button>
-                  </td>
-                </tr>
+      <div className="card shadow-sm border-0">
+        <div className="card-body d-flex flex-wrap align-items-end gap-3">
+          <div>
+            <label className="form-label small fw-semibold" htmlFor="date">{t('appointments.date')}</label>
+            <input id="date" type="date" className="form-control" value={date} onChange={(e) => setDate(e.target.value)} />
+          </div>
+          <div>
+            <label className="form-label small fw-semibold" htmlFor="status">{t('appointments.status')}</label>
+            <select id="status" className="form-select" value={status} onChange={(e) => setStatus(e.target.value)}>
+              <option value="">{t('common.all')}</option>
+              {STATUSES.map((s) => (
+                <option key={s} value={s}>{t(`status.${s}`)}</option>
               ))}
-            </tbody>
-          </table>
-        )}
+            </select>
+          </div>
+          <button className="btn btn-outline-primary" onClick={() => setDate(todayIstanbul())}>
+            {t('appointments.today')}
+          </button>
+        </div>
+      </div>
+
+      {error && <div className="alert alert-danger mb-0">{error}</div>}
+
+      <div className="card shadow-sm border-0">
+        <div className="card-body p-0">
+          {rows === null ? (
+            <p className="p-4 text-secondary mb-0">{t('common.loading')}</p>
+          ) : rows.length === 0 ? (
+            <p className="p-4 text-secondary mb-0">{t('common.empty')}</p>
+          ) : (
+            <div className="table-responsive">
+              <table className="table table-hover align-middle mb-0">
+                <thead className="table-light">
+                  <tr>
+                    <th>{t('appointments.time')}</th>
+                    <th>{t('appointments.date')}</th>
+                    <th>{t('appointments.customer')}</th>
+                    <th>{t('appointments.phone')}</th>
+                    <th>{t('appointments.service')}</th>
+                    {isAdmin && <th>{t('appointments.stylist')}</th>}
+                    <th>{t('appointments.status')}</th>
+                    <th className="text-end">{t('appointments.actions')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((a) => (
+                    <tr key={a.id}>
+                      <td className="fw-semibold">{formatTime(a.baslangic)}</td>
+                      <td>{formatDate(a.baslangic, lang)}</td>
+                      <td>{a.musteriAd} {a.musteriSoyad}</td>
+                      <td>{a.musteriTelefon}</td>
+                      <td>{a.hizmet}</td>
+                      {isAdmin && <td>{a.kuaforAd} {a.kuaforSoyad}</td>}
+                      <td><span className={`badge ${BADGE[a.status]}`}>{t(`status.${a.status}`)}</span></td>
+                      <td className="text-end">
+                        <div className="d-flex justify-content-end flex-wrap gap-1">
+                          {ACTIONS[a.status].map((act) => (
+                            <button key={act.to} className={`btn btn-sm ${act.style}`} onClick={() => changeStatus(a.id, act.to)}>
+                              {t(act.key)}
+                            </button>
+                          ))}
+                          <button className="btn btn-sm btn-outline-secondary" onClick={() => remove(a.id)}>
+                            {t('common.delete')}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

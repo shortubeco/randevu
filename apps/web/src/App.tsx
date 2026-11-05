@@ -4,8 +4,8 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth, type Role } from './auth/AuthContext';
 import Layout from './components/Layout';
 import AppointmentsPage from './pages/AppointmentsPage';
-import DashboardPage from './pages/DashboardPage';
 import CustomersPage from './pages/CustomersPage';
+import DashboardPage from './pages/DashboardPage';
 import LoginPage from './pages/LoginPage';
 import ProfilePage from './pages/ProfilePage';
 import ReportsPage from './pages/ReportsPage';
@@ -19,10 +19,10 @@ function Protected({ roles, children }: { roles: Role[]; children: ReactElement 
   const { t } = useTranslation();
   const { user, loading } = useAuth();
 
-  if (loading) return <p className="p-6 text-sm text-slate-500">{t('common.loading')}</p>;
+  if (loading) return <div className="p-4 text-secondary">{t('common.loading')}</div>;
   if (!user) return <Navigate to="/login" replace />;
   if (!roles.includes(user.role)) {
-    return <p className="p-6 text-sm text-slate-600">{t('common.noAccess')}</p>;
+    return <div className="alert alert-warning m-4">{t('common.noAccess')}</div>;
   }
   return children;
 }
