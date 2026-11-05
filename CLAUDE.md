@@ -14,14 +14,22 @@ Monorepo: `apps/api` (NestJS) ve `apps/web` (web paneli) var. `apps/mobile` (Exp
 - Geliştirmede `/api` istekleri `vite.config.ts` proxy'siyle canlı API'ye gider (`https://api.sozcutvcanli.com`). Üretimde `.env.production` içindeki `VITE_API_URL` (`https://api.sozcutvcanli.com/api/v1`) kullanılır.
 - `src/api/client.ts`: fetch sarmalayıcı. Access token yalnızca bellekte; refresh token `localStorage` (`rt`) içinde. 401'de bir kez yeniler.
 - `src/auth/AuthContext.tsx`: sayfa yenilenince refresh ile oturumu geri yükler. Rol: `ADMIN | KUAFOR | MUSTERI`.
-- `src/App.tsx`: rotalar. `/` ve `/randevular` (ADMIN ve KUAFOR), `/kuaforler` ve `/hizmetler` (ADMIN), `/calisma` ve `/profil` (KUAFOR). MUSTERI erişemez.
+- `src/App.tsx`: rotalar. `/` (dashboard) ve `/randevular` (ADMIN ve KUAFOR); `/kuaforler`, `/kuaforler/:id`, `/hizmetler`, `/hizmetler/:id`, `/musteriler`, `/raporlar` (ADMIN); `/calisma` (KUAFOR); `/profil` (ADMIN ve KUAFOR). MUSTERI erişemez.
 - `src/i18n/`: `tr.json` ve `en.json`. Yeni metin eklerken iki dosyaya da ekle. Dil tercihi `localStorage` `lang` anahtarında.
 - `src/lib/format.ts`: saatler `Europe/Istanbul` ile gösterilir.
 - Stil: Bootstrap sınıfları doğrudan JSX'te (`card`, `table`, `btn btn-*`, `form-control`, `badge text-bg-*`). `src/index.css` yalnızca küçük uyarlamaları içerir (kenar çubuğu, KPI kartları, `.bar-chart` çubuk grafik). Durum rozetleri renk + metin ile gösterilir.
 - Grafik: `src/components/BarChart.tsx` tek seri, tek eksenli CSS çubuk grafik. Kütüphane yok.
 - `public/.htaccess`: SPA yönlendirmesi (Apache/LiteSpeed).
 - Yayın: `panel.sozcutvcanli.com` (HTTPS). Dosyalar `npm run build` çıktısıyla cPanel'de alt alan adı klasörüne yüklenir. Panel origin'i API'nin `CORS_ORIGINS` listesinde tam olarak `https://` ile yer almalı; `http://` ile açılırsa CORS hatası verir.
-- Sayfalar: `/randevular` (günlük liste, durum işlemleri), `/kuaforler`, `/hizmetler`, `/musteriler`, `/raporlar` (ADMIN), `/calisma` (çoklu çalışma aralığı ve izinler), `/profil` (kişisel bilgi, şifre değiştirme; KUAFOR'a ek olarak kuaför bilgisi).
+- Sayfalar:
+  - `DashboardPage` (`/`): KPI kartları, 12 aylık randevu ve ciro grafikleri (`BarChart`), bu ayın durumları, bugünün randevuları. ADMIN'de ek olarak kuaför ve hizmet tabloları ile son müşteriler; KUAFOR yalnızca kendi verisini görür.
+  - `AppointmentsPage` (`/randevular`): tarih ve durum filtresi, duruma göre işlemler (onayla, iptal, tamamla, gelmedi), silme.
+  - `StylistsPage` / `StylistEditPage`: kuaför listesi, hizmet atama, pasife alma, silme; düzenleme sayfasında kişisel bilgiler, slot süresi, aktiflik ve isteğe bağlı yeni şifre (boşsa değişmez).
+  - `ServicesPage` / `ServiceEditPage`: hizmet ekleme, aktiflik, silme; düzenleme sayfası.
+  - `CustomersPage` (`/musteriler`): arama kutulu müşteri listesi.
+  - `ReportsPage` (`/raporlar`): tarih aralığı, duruma göre dağılım, kuaför bazlı ciro.
+  - `SchedulePage` (`/calisma`): gün başına birden fazla çalışma aralığı ve mola; izin günleri.
+  - `ProfilePage` (`/profil`): kişisel bilgiler, şifre değiştirme; KUAFOR'a ek olarak kuaför bilgisi.
 - Şifre değişince sunucu tüm refresh token'ları iptal eder; panel oturumu kapatır ve yeniden girişi ister.
 - `public/.htaccess` HTTP'yi HTTPS'e yönlendirir.
 - Bilinen eksikler: müşteri paneli yok (müşteri yalnızca mobilden kullanır), raporlar yalnızca tarih aralığı + durum/kuaför bazlı.
@@ -53,11 +61,13 @@ Global prefix `api/v1`. Varsayılan olarak tüm uç noktalar giriş ister; herke
   - Uç noktalar: `POST /auth/register` (her zaman MUSTERI), `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`, `GET /auth/me`.
 - `src/profile/`: `PATCH /auth/me` (ad, soyad, telefon), `POST /auth/change-password` (mevcut şifre doğrulanır, tüm refresh token'lar iptal edilir).
 - `src/admin/`: `GET /admin/customers` (müşteri listesi, randevu sayısı), `GET /admin/reports?from&to` (duruma göre sayılar, kuaför bazlı ciro; ciro yalnızca TAMAMLANDI).
-- `src/services/`: `GET /services` (aktif hizmetler). `/admin/services` (ADMIN): listele, ekle, güncelle, sil (soft delete).
+- `src/dashboard/`: `GET /dashboard` (ADMIN ve KUAFOR). Scope'a göre veri döner: KPI, 12 aylık seri (`monthly`), bu ayın durumları, bugünkü randevular. ADMIN'e ek olarak `kuaforler`, `hizmetler`, `sonMusteriler`. Ay sınırları Istanbul saatine göre hesaplanır.
+- `src/services/`: `GET /services` (aktif hizmetler). `/admin/services` (ADMIN): listele, `GET /:id` ile tek kayıt, ekle, güncelle, sil (soft delete).
 - `src/stylists/`:
   - `GET /stylists`, `GET /stylists/:id`, `GET /stylists/:id/services`: giriş gerekir, yalnızca aktif kuaförler.
   - `GET /stylists/me`, `PATCH /stylists/me` (KUAFOR).
-  - `/admin/stylists` (ADMIN): listele, oluştur (KUAFOR kullanıcısı ve Stylist kaydı tek transaction'da), güncelle, sil (soft delete), `PUT /:id/services`.
+  - `/admin/stylists` (ADMIN): listele, oluştur (KUAFOR kullanıcısı ve Stylist kaydı tek transaction'da), `GET /:id` ile tek kayıt, `PATCH /:id` (profil alanları, ad/soyad/telefon/e-posta, `isActive`, opsiyonel `password`), sil (soft delete), `PUT /:id/services`.
+  - `PATCH` ile `password` gönderilirse şifre hash'lenir ve kuaförün tüm refresh token'ları iptal edilir. Admin bu yolla kuaförün şifresini sıfırlar; yeni şifre kuaföre elle iletilir.
   - Pasifleştirme ve silmede kuaförün refresh token'ları iptal edilir.
 - `src/scheduling/scheduling.ts`: saat hesapları ve çakışma kontrolü için ortak fonksiyonlar. Saatler Europe/Istanbul (sabit UTC+03:00, DST yok) olarak yorumlanır. `validateBooking` hem randevu oluşturma hem değiştirmede kullanılır.
 - `src/schedule/`:
@@ -110,8 +120,10 @@ Sunucuda doğrulandı: çakışma (aynı saate ikinci randevu → 409), mola saa
 
 Henüz test edilmedi (kullanıcı backend testlerini şimdilik durdurdu): müşteri iptal/değişiklik, 2 saat kuralı, admin listesi. Bu testler web panel tamamlandıktan sonra, uçtan uca olarak yapılabilir.
 
+Web paneli (`apps/web`) tamamlandı: Bootstrap arayüzü, dashboard, yönetim ve düzenleme sayfaları, profil ve şifre işlemleri. Canlı: `https://panel.sozcutvcanli.com`. Panelin sunucuda uçtan uca testi kullanıcı tarafında yapılır; dashboard ve düzenleme akışları henüz test edilmedi.
+
 Yapılacaklar:
 - `register` ve `login` için istek sınırı (rate limit).
 - Randevu hatırlatma bildirimleri (Expo Push, plan 6. aşama).
-- Mobil uygulama (`apps/mobile`, Expo). Web paneli tamam, ayrıca bkz. "Web paneli" bölümü.
+- Mobil uygulama (`apps/mobile`, Expo). Müşterinin asıl ürünü; API uç noktaları (`/auth`, `/stylists`, `/services`, `/appointments`) hazır.
 - `npm install` 22 güvenlik uyarısı incelenmedi.
