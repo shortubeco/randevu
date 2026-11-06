@@ -7,94 +7,120 @@ import {
   ParseIntPipe,
   Patch,
   Post,
-  Put,
+  Query,
 } from '@nestjs/common';
 import { AuthUser, CurrentUser, Roles } from '../auth/decorators';
 import { Role } from '../auth/roles.enum';
 import {
-  AdminUpdateStylistDto,
-  AssignStylistServicesDto,
+  CreateServiceDto,
   CreateStylistDto,
-  UpdateStylistProfileDto,
+  ListStylistsQuery,
+  UpdateOwnStylistDto,
+  UpdateServiceDto,
+  UpdateStylistDto,
 } from './stylists.dto';
 import { StylistsService } from './stylists.service';
 
-// Giriş yapmış herkes aktif kuaförleri görebilir.
+// Müşteri (giriş yapmış herkes): dükkanın aktif kuaförleri, kuaförün aktif hizmetleri.
+// "me" rotaları ":id" rotalarından ÖNCE tanımlı olmalı.
 @Controller('stylists')
 export class StylistsController {
   constructor(private readonly stylists: StylistsService) {}
 
   @Get()
-  list() {
-    return this.stylists.listActive();
+  list(@Query() q: ListStylistsQuery) {
+    return this.stylists.listVisibleByShop(q.shopId);
   }
 
-  // "me" rotaları ":id"den ÖNCE tanımlanmalı, yoksa "me" id sanılır.
   @Get('me')
   @Roles(Role.KUAFOR)
   me(@CurrentUser() user: AuthUser) {
-    return this.stylists.findByUserId(user.sub);
+    return this.stylists.findOwnProfile(user.sub);
   }
 
   @Patch('me')
   @Roles(Role.KUAFOR)
-  updateMe(@CurrentUser() user: AuthUser, @Body() dto: UpdateStylistProfileDto) {
+  updateMe(@CurrentUser() user: AuthUser, @Body() dto: UpdateOwnStylistDto) {
     return this.stylists.updateOwnProfile(user.sub, dto);
   }
 
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.stylists.findOneActive(id);
-  }
-
-  @Get(':id/services')
-  async services(@Param('id', ParseIntPipe) id: number) {
-    await this.stylists.findOneActive(id);
-    return this.stylists.servicesOf(id);
-  }
-}
-
-// Kuaför yönetimi yalnızca ADMIN.
-@Controller('admin/stylists')
-@Roles(Role.ADMIN)
-export class AdminStylistsController {
-  constructor(private readonly stylists: StylistsService) {}
-
-  @Get()
-  listAll() {
-    return this.stylists.listAll();
-  }
-
-  @Post()
-  create(@Body() dto: CreateStylistDto) {
-    return this.stylists.create(dto);
-  }
-
-  @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.stylists.findAdmin(id);
-  }
-
-  @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: AdminUpdateStylistDto) {
-    return this.stylists.adminUpdate(id, dto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.stylists.remove(id);
+    return this.stylists.findVisible(id);
   }
 
   @Get(':id/services')
   services(@Param('id', ParseIntPipe) id: number) {
-    return this.stylists.adminServicesOf(id);
+    return this.stylists.servicesVisible(id);
+  }
+}
+
+// İşletme sahibi: kuaförler ve hizmetleri.
+@Controller('business/stylists')
+@Roles(Role.ISLETME_SAHIBI)
+export class OwnerStylistsController {
+  constructor(private readonly stylists: StylistsService) {}
+
+  @Get()
+  list(@CurrentUser() user: AuthUser) {
+    return this.stylists.listOwned(user.sub);
   }
 
-  @Put(':id/services')
-  assignServices(
+  @Post()
+  create(@CurrentUser() user: AuthUser, @Body() dto: CreateStylistDto) {
+    return this.stylists.createOwned(user.sub, dto);
+  }
+
+  @Get(':id')
+  findOne(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
+    return this.stylists.findOwned(user.sub, id);
+  }
+
+  @Patch(':id')
+  update(
+    @CurrentUser() user: AuthUser,
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: AssignStylistServicesDto,
+    @Body() dto: UpdateStylistDto,
   ) {
-    return this.stylists.assignServices(id, dto);
+    return this.stylists.updateOwned(user.sub, id, dto);
+  }
+
+  @Delete(':id')
+  remove(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
+    return this.stylists.removeOwned(user.sub, id);
+  }
+
+  @Get(':id/services')
+  services(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
+    return this.stylists.listServicesOwned(user.sub, id);
+  }
+
+  @Post(':id/services')
+  createService(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CreateServiceDto,
+  ) {
+    return this.stylists.createService(user.sub, id, dto);
+  }
+}
+
+@Controller('business/services')
+@Roles(Role.ISLETME_SAHIBI)
+export class OwnerServicesController {
+  constructor(private readonly stylists: StylistsService) {}
+
+  @Patch(':id')
+  update(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateServiceDto,
+  ) {
+    return this.stylists.updateService(user.sub, id, dto);
+  }
+
+  @Delete(':id')
+  remove(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
+    return this.stylists.removeService(user.sub, id);
   }
 }

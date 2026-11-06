@@ -24,12 +24,22 @@
     "passwordShort": "Şifre en az 8 karakter olmalı",
     "passwordMismatch": "Şifreler eşleşmiyor",
     "phoneInvalid": "Telefon numarası geçersiz",
-    "invalidCredentials": "E-posta veya şifre hatalı"
+    "invalidCredentials": "E-posta veya şifre hatalı",
+    "customerOnly": "Bu uygulama yalnızca müşteri hesapları içindir. İşletme ve kuaför hesapları web panelinden giriş yapar."
   },
   "tabs": {
-    "stylists": "Kuaförler",
+    "shops": "Dükkanlar",
     "appointments": "Randevularım",
+    "notifications": "Bildirimler",
     "profile": "Profil"
+  },
+  "shops": {
+    "city": "Şehir",
+    "district": "İlçe",
+    "search": "Hizmet ara (ör. saç boyama)",
+    "pickDistrict": "Listelemek için bir ilçe seç",
+    "empty": "Bu ilçede listelenen dükkan yok",
+    "stylistCount": "{{count}} kuaför"
   },
   "stylists": {
     "title": "Kuaförler",
@@ -37,7 +47,8 @@
     "slotInfo": "{{minutes}} dk aralıklarla randevu",
     "services": "Hizmetler",
     "noServices": "Bu kuaför için hizmet tanımlı değil",
-    "minutes": "{{count}} dk"
+    "minutes": "{{count}} dk",
+    "rating": "★ {{avg}} · {{count}} değerlendirme"
   },
   "booking": {
     "title": "Randevu al",
@@ -88,6 +99,31 @@
     "language": "Dil",
     "logout": "Çıkış yap",
     "logoutConfirm": "Çıkış yapmak istiyor musun?"
+  },
+  "review": {
+    "title": "Değerlendirmeler",
+    "cta": "Değerlendir",
+    "ratingLabel": "Puanın",
+    "commentLabel": "Yorumun (isteğe bağlı)",
+    "commentPlaceholder": "Deneyimini yaz...",
+    "stars": "{{count}} yıldız",
+    "pickStars": "Lütfen bir puan seç",
+    "submit": "Gönder",
+    "thanksTitle": "Teşekkürler",
+    "thanksMessage": "Değerlendirmen kaydedildi.",
+    "none": "Henüz değerlendirme yok",
+    "count": "{{count}} değerlendirme"
+  },
+  "notifications": {
+    "title": "Bildirimler",
+    "empty": "Henüz bildirimin yok.",
+    "types": {
+      "ONAYLANDI": "Randevu onaylandı",
+      "IPTAL": "Randevu iptal edildi",
+      "TAMAMLANDI": "Randevu tamamlandı",
+      "HATIRLATMA": "Randevu hatırlatması",
+      "OTHER": "Bildirim"
+    }
   },
   "days": {
     "0": "Paz",

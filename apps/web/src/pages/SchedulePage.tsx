@@ -1,8 +1,14 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, ApiError } from '../api/client';
+import {
+  useAddTimeOffMutation,
+  useDeleteTimeOffMutation,
+  useSetWorkingHoursMutation,
+  useTimeOffQuery,
+  useWorkingHoursQuery,
+} from '../store/apiSlice';
+import { errorText } from '../store/baseQuery';
 import { formatDate, formatTime } from '../lib/format';
-import type { TimeOff, WorkingHour } from '../types';
 
 // Her satır bir çalışma aralığıdır; gün başına birden fazla aralık olabilir.
 interface Block {
@@ -18,40 +24,41 @@ function newBlock(gun: number): Block {
   return { gun, baslangic: '09:00', bitis: '18:00', mola: false, molaBaslangic: '12:30', molaBitis: '13:30' };
 }
 
-export default function SchedulePage() {
+interface Props {
+  // Kuaförün kendi sayfası: /stylists/me. İşletme sahibi: /business/stylists/:id.
+  basePath: string;
+}
+
+export default function SchedulePage({ basePath }: Props) {
   const { t, i18n } = useTranslation();
+  const hoursQ = useWorkingHoursQuery(basePath);
+  const timeOffQ = useTimeOffQuery(basePath);
+  const [setHours] = useSetWorkingHoursMutation();
+  const [addTimeOff] = useAddTimeOffMutation();
+  const [deleteTimeOff] = useDeleteTimeOffMutation();
+
   const [blocks, setBlocks] = useState<Block[]>([]);
-  const [timeOff, setTimeOff] = useState<TimeOff[] | null>(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [off, setOff] = useState({ baslangic: '', bitis: '', sebep: '' });
 
-  async function load() {
-    setError('');
-    try {
-      const [wh, to] = await Promise.all([
-        api<WorkingHour[]>('/stylists/me/working-hours'),
-        api<TimeOff[]>('/stylists/me/time-off'),
-      ]);
-      setBlocks(
-        wh.map((r) => ({
-          gun: r.gun,
-          baslangic: r.baslangic,
-          bitis: r.bitis,
-          mola: !!r.molaBaslangic,
-          molaBaslangic: r.molaBaslangic ?? '12:30',
-          molaBitis: r.molaBitis ?? '13:30',
-        })),
-      );
-      setTimeOff(to);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : t('common.error'));
-    }
-  }
-
+  // Çalışma saatleri sunucudan (ya da önbellekten) geldiğinde form doldurulur.
   useEffect(() => {
-    load();
-  }, []);
+    if (!hoursQ.data) return;
+    setBlocks(
+      hoursQ.data.map((r) => ({
+        gun: r.gun,
+        baslangic: r.baslangic,
+        bitis: r.bitis,
+        mola: !!r.molaBaslangic,
+        molaBaslangic: r.molaBaslangic ?? '12:30',
+        molaBitis: r.molaBitis ?? '13:30',
+      })),
+    );
+  }, [hoursQ.data]);
+
+  const loadError = hoursQ.error || timeOffQ.error ? errorText(hoursQ.error ?? timeOffQ.error, t('common.error')) : '';
+  const timeOff = timeOffQ.data ?? null;
 
   function toggleDay(gun: number, open: boolean) {
     setBlocks((prev) => (open ? [...prev, newBlock(gun)] : prev.filter((b) => b.gun !== gun)));
@@ -76,41 +83,39 @@ export default function SchedulePage() {
       ...(b.mola ? { molaBaslangic: b.molaBaslangic, molaBitis: b.molaBitis } : {}),
     }));
     try {
-      await api('/stylists/me/working-hours', { method: 'PUT', body: JSON.stringify({ days: payload }) });
+      await setHours({ base: basePath, days: payload }).unwrap();
       setMessage(t('schedule.saved'));
-      await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t('common.error'));
+      setError(errorText(err, t('common.error')));
     }
   }
 
-  async function addTimeOff(e: FormEvent) {
+  async function onAddTimeOff(e: FormEvent) {
     e.preventDefault();
     setError('');
     try {
       // datetime-local değeri Istanbul saatidir; sunucuya offset ile gönderilir.
-      await api('/stylists/me/time-off', {
-        method: 'POST',
-        body: JSON.stringify({
+      await addTimeOff({
+        base: basePath,
+        body: {
           baslangic: `${off.baslangic}:00+03:00`,
           bitis: `${off.bitis}:00+03:00`,
           ...(off.sebep ? { sebep: off.sebep } : {}),
-        }),
-      });
+        },
+      }).unwrap();
       setOff({ baslangic: '', bitis: '', sebep: '' });
-      await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t('common.error'));
+      setError(errorText(err, t('common.error')));
     }
   }
 
   async function removeTimeOff(id: number) {
     if (!window.confirm(t('common.confirmDelete'))) return;
+    setError('');
     try {
-      await api(`/stylists/me/time-off/${id}`, { method: 'DELETE' });
-      await load();
+      await deleteTimeOff({ base: basePath, tid: id }).unwrap();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t('common.error'));
+      setError(errorText(err, t('common.error')));
     }
   }
 
@@ -119,7 +124,7 @@ export default function SchedulePage() {
   return (
     <div className="vstack gap-4" style={{ maxWidth: 960 }}>
       <h1 className="h3 page-title mb-0">{t('schedule.title')}</h1>
-      {error && <div className="alert alert-danger mb-0">{error}</div>}
+      {(error || loadError) && <div className="alert alert-danger mb-0">{error || loadError}</div>}
       {message && <div className="alert alert-success mb-0">{message}</div>}
 
       <form onSubmit={saveHours} className="card shadow-sm border-0">
@@ -181,7 +186,7 @@ export default function SchedulePage() {
 
       <section className="vstack gap-3">
         <h2 className="h5 fw-semibold mb-0">{t('schedule.timeOff')}</h2>
-        <form onSubmit={addTimeOff} className="card shadow-sm border-0">
+        <form onSubmit={onAddTimeOff} className="card shadow-sm border-0">
           <div className="card-body">
             <div className="row g-2 align-items-end">
               <div className="col-md-3">

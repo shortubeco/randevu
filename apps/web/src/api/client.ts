@@ -4,9 +4,17 @@ const RT_KEY = 'rt';
 
 // Access token yalnızca bellekte tutulur; refresh token tarayıcıda saklanır.
 let accessToken: string | null = null;
+// Sunucu "geçici şifre" bayrağı döndürdüyse true (kuaför ilk girişi).
+let passwordChangeRequired = false;
+let sessionExpiredHandler: (() => void) | null = null;
+let passwordChangeHandler: (() => void) | null = null;
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(
+    public status: number,
+    message: string,
+    public code?: string,
+  ) {
     super(message);
   }
 }
@@ -30,6 +38,7 @@ export function setSession(access: string, refresh: string) {
 
 export function clearSession() {
   accessToken = null;
+  passwordChangeRequired = false;
   try {
     localStorage.removeItem(RT_KEY);
   } catch {
@@ -37,16 +46,22 @@ export function clearSession() {
   }
 }
 
+export function isPasswordChangeRequired(): boolean {
+  return passwordChangeRequired;
+}
+
 async function parseError(res: Response): Promise<ApiError> {
   let message = `HTTP ${res.status}`;
+  let code: string | undefined;
   try {
     const body = await res.json();
     if (Array.isArray(body.message)) message = body.message.join(', ');
     else if (typeof body.message === 'string') message = body.message;
+    if (typeof body.code === 'string') code = body.code;
   } catch {
     /* gövde JSON değilse varsayılan mesaj */
   }
-  return new ApiError(res.status, message);
+  return new ApiError(res.status, message, code);
 }
 
 // Yenileme isteği devam ederken gelen çağrılar aynı isteği paylaşır. Refresh token her
@@ -78,14 +93,18 @@ async function doRefresh(): Promise<boolean> {
   }
   const data = await res.json();
   setSession(data.accessToken, data.refreshToken);
+  passwordChangeRequired = !!data.sifreDegismeli;
   return true;
 }
 
-// Oturum sunucu tarafında geçersiz kılındığında (yenileme reddedildi) çağrılır; AuthContext kullanıcıyı çıkarır.
-let sessionExpiredHandler: (() => void) | null = null;
-
+// Oturum sunucuda geçersiz kılındığında (yenileme reddedildi) çağrılır; AuthContext kullanıcıyı çıkarır.
 export function setSessionExpiredHandler(fn: (() => void) | null) {
   sessionExpiredHandler = fn;
+}
+
+// Sunucu SIFRE_DEGISMELI döndürdüğünde çağrılır; AuthContext kullanıcıyı şifre ekranına yönlendirir.
+export function setPasswordChangeHandler(fn: (() => void) | null) {
+  passwordChangeHandler = fn;
 }
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -103,7 +122,14 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (res.status === 401 && (await refreshSession())) {
     res = await send();
   }
-  if (!res.ok) throw await parseError(res);
+  if (!res.ok) {
+    const err = await parseError(res);
+    if (err.code === 'SIFRE_DEGISMELI') {
+      passwordChangeRequired = true;
+      passwordChangeHandler?.();
+    }
+    throw err;
+  }
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }

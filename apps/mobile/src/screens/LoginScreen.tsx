@@ -24,7 +24,8 @@ export function LoginScreen({ navigation }: Props) {
     try {
       await login(email, password);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : t('common.genericError'));
+      if (e instanceof ApiError && e.status === 403) setError(t('auth.customerOnly'));
+      else setError(e instanceof ApiError ? e.message : t('common.genericError'));
     } finally {
       setBusy(false);
     }

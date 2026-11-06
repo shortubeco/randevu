@@ -180,3 +180,109 @@ body {
   font-weight: 700;
   color: #14213d;
 }
+
+/* Flex içinde metnin taşmasını önler (Bootstrap'te min-w-0 yoktur). */
+.min-w-0 {
+  min-width: 0;
+}
+
+/* Landing sayfası */
+.landing-hero {
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+  background: linear-gradient(135deg, #6f42c1 0%, #0d6efd 50%, #20c997 130%);
+}
+
+.landing-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(50px);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.stat-tile {
+  border: 0;
+  border-radius: 1rem;
+  color: #fff;
+  box-shadow: 0 0.5rem 1.2rem rgba(20, 33, 61, 0.15);
+}
+
+.feature-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  color: #fff;
+}
+
+.rank-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #14213d;
+  background: #e9ecef;
+  flex-shrink: 0;
+}
+
+.rank-1 { background: linear-gradient(135deg, #ffe066, #ffb703); }
+.rank-2 { background: linear-gradient(135deg, #e9ecef, #adb5bd); }
+.rank-3 { background: linear-gradient(135deg, #f4b183, #d9822b); }
+
+.avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #0d6efd, #6f42c1);
+}
+
+.star-rating {
+  color: #ffb703;
+  letter-spacing: 1px;
+}
+
+.city-card {
+  border: 0;
+  border-top: 5px solid var(--city-color, #0d6efd);
+}
+
+.plan-card {
+  border: 0;
+  border-radius: 1.25rem;
+  overflow: hidden;
+}
+
+.plan-card-gold {
+  color: #fff;
+  background: linear-gradient(135deg, #d9480f 0%, #f08c00 100%);
+}
+
+.plan-card-silver {
+  color: #fff;
+  background: linear-gradient(135deg, #5f6c7b 0%, #b8c1cc 100%);
+}
+
+.plan-card-free {
+  color: #fff;
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+}
+
+.cta-band {
+  color: #fff;
+  background: linear-gradient(90deg, #14213d 0%, #6f42c1 100%);
+}

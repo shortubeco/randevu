@@ -1,5 +1,5 @@
 import { Body, Controller, HttpCode, HttpStatus, Patch, Post } from '@nestjs/common';
-import { AuthUser, CurrentUser } from '../auth/decorators';
+import { AllowPasswordChange, AuthUser, CurrentUser } from '../auth/decorators';
 import { ChangePasswordDto, UpdateProfileDto } from './profile.dto';
 import { ProfileService } from './profile.service';
 
@@ -13,6 +13,7 @@ export class ProfileController {
     return this.profile.update(user.sub, dto);
   }
 
+  @AllowPasswordChange()
   @Post('change-password')
   @HttpCode(HttpStatus.OK)
   changePassword(@CurrentUser() user: AuthUser, @Body() dto: ChangePasswordDto) {

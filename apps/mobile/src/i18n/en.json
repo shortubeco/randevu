@@ -24,12 +24,22 @@
     "passwordShort": "Password must be at least 8 characters",
     "passwordMismatch": "Passwords do not match",
     "phoneInvalid": "Invalid phone number",
-    "invalidCredentials": "Email or password is incorrect"
+    "invalidCredentials": "Email or password is incorrect",
+    "customerOnly": "This app is for customer accounts only. Business and stylist accounts sign in on the web panel."
   },
   "tabs": {
-    "stylists": "Stylists",
+    "shops": "Shops",
     "appointments": "My appointments",
+    "notifications": "Notifications",
     "profile": "Profile"
+  },
+  "shops": {
+    "city": "City",
+    "district": "District",
+    "search": "Search service (e.g. hair coloring)",
+    "pickDistrict": "Pick a district to see shops",
+    "empty": "No shops are listed in this district",
+    "stylistCount": "{{count}} stylists"
   },
   "stylists": {
     "title": "Stylists",
@@ -37,7 +47,8 @@
     "slotInfo": "Appointments every {{minutes}} min",
     "services": "Services",
     "noServices": "This stylist has no services yet",
-    "minutes": "{{count}} min"
+    "minutes": "{{count}} min",
+    "rating": "★ {{avg}} · {{count}} reviews"
   },
   "booking": {
     "title": "Book appointment",
@@ -88,6 +99,31 @@
     "language": "Language",
     "logout": "Log out",
     "logoutConfirm": "Do you want to log out?"
+  },
+  "review": {
+    "title": "Reviews",
+    "cta": "Rate",
+    "ratingLabel": "Your rating",
+    "commentLabel": "Your comment (optional)",
+    "commentPlaceholder": "Tell us about your experience...",
+    "stars": "{{count}} stars",
+    "pickStars": "Please choose a rating",
+    "submit": "Submit",
+    "thanksTitle": "Thank you",
+    "thanksMessage": "Your review was saved.",
+    "none": "No reviews yet",
+    "count": "{{count}} reviews"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "You have no notifications yet.",
+    "types": {
+      "ONAYLANDI": "Appointment confirmed",
+      "IPTAL": "Appointment cancelled",
+      "TAMAMLANDI": "Appointment completed",
+      "HATIRLATMA": "Appointment reminder",
+      "OTHER": "Notification"
+    }
   },
   "days": {
     "0": "Sun",

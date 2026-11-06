@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   UnauthorizedException,
@@ -7,7 +8,10 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { createHash, randomBytes } from 'crypto';
 import { DatabaseService } from '../database/database.service';
-import { LoginDto, RegisterDto } from './auth.dto';
+import { FOREIGN_KEY_VIOLATION, pgCode, UNIQUE_VIOLATION } from '../common/pg-errors';
+import { AccountService, assertIsletmeAktif } from './account.service';
+import { SettingsService } from '../settings/settings.service';
+import { IsletmeKayitDto, LoginDto, RegisterDto } from './auth.dto';
 import { REFRESH_TOKEN_TTL_DAYS } from './auth.config';
 import { AuthUser } from './decorators';
 import { Role } from './roles.enum';
@@ -19,8 +23,8 @@ interface UserRow {
   telefon: string;
   email: string;
   passwordHash: string;
-  role: Role;
-  isActive: boolean;
+  rol: Role;
+  sifreDegismeli: boolean;
 }
 
 export interface PublicUser {
@@ -32,15 +36,16 @@ export interface PublicUser {
   role: Role;
 }
 
-const UNIQUE_VIOLATION = '23505';
-
 @Injectable()
 export class AuthService {
   constructor(
     private readonly db: DatabaseService,
     private readonly jwt: JwtService,
+    private readonly accounts: AccountService,
+    private readonly settings: SettingsService,
   ) {}
 
+  // Müşteri kaydı (mobil). Oturum hemen açılır.
   async register(dto: RegisterDto) {
     const email = dto.email.toLowerCase();
     const passwordHash = await bcrypt.hash(dto.password, 12);
@@ -48,34 +53,87 @@ export class AuthService {
     let user: UserRow;
     try {
       const result = await this.db.query<UserRow>(
-        `INSERT INTO "User" (ad, soyad, telefon, email, "passwordHash", role, "isActive", "updatedAt")
-         VALUES ($1, $2, $3, $4, $5, 'MUSTERI', true, now())
-         RETURNING id, ad, soyad, telefon, email, "passwordHash", role, "isActive"`,
+        `INSERT INTO "User" (ad, soyad, telefon, email, "passwordHash", rol, "updatedAt")
+         VALUES ($1, $2, $3, $4, $5, 'MUSTERI', now())
+         RETURNING id, ad, soyad, telefon, email, "passwordHash", rol, "sifreDegismeli"`,
         [dto.ad, dto.soyad, dto.telefon, email, passwordHash],
       );
       user = result.rows[0];
     } catch (err) {
-      if ((err as { code?: string }).code === UNIQUE_VIOLATION) {
+      if (pgCode(err) === UNIQUE_VIOLATION) {
         throw new ConflictException('Bu e-posta ile kayıtlı bir hesap var');
       }
       throw err;
     }
-
     return this.issueSession(user);
+  }
+
+  // İşletme sahibi kaydı (landing page). Hesap ONAY_BEKLIYOR başlar; oturum açılmaz.
+  async registerIsletme(dto: IsletmeKayitDto) {
+    // Ücretli planda ödeme sayfası, admin panelinden girilen havale bilgisini gösterir.
+    const havaleAyar = dto.planKod === 'UCRETSIZ' ? null : await this.settings.getHavale();
+    const email = dto.email.toLowerCase();
+    const passwordHash = await bcrypt.hash(dto.password, 12);
+
+    try {
+      return await this.db.transaction(async (client) => {
+        const u = await client.query<{ id: number }>(
+          `INSERT INTO "User" (ad, soyad, telefon, email, "passwordHash", rol, "updatedAt")
+           VALUES ($1, $2, $3, $4, $5, 'ISLETME_SAHIBI', now()) RETURNING id`,
+          [dto.ad, dto.soyad, dto.telefon, email, passwordHash],
+        );
+        const i = await client.query<{ id: number }>(
+          `INSERT INTO "Isletme" (ad, "sahipId", "planKod") VALUES ($1, $2, $3) RETURNING id`,
+          [dto.isletmeAd, u.rows[0].id, dto.planKod],
+        );
+        await client.query(
+          `INSERT INTO "Dukkan" ("isletmeId", ad, "ilId", "ilceId", adres, telefon)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [
+            i.rows[0].id,
+            dto.dukkan.ad,
+            dto.dukkan.ilId,
+            dto.dukkan.ilceId,
+            dto.dukkan.adres ?? null,
+            dto.dukkan.telefon ?? null,
+          ],
+        );
+        return {
+          isletmeId: i.rows[0].id,
+          durum: 'ONAY_BEKLIYOR' as const,
+          havale: havaleAyar
+            ? { ...havaleAyar, aciklama: `Açıklama: ${dto.isletmeAd}` }
+            : null,
+        };
+      });
+    } catch (err) {
+      if (pgCode(err) === UNIQUE_VIOLATION) {
+        throw new ConflictException('Bu e-posta ile kayıtlı bir hesap var');
+      }
+      if (pgCode(err) === FOREIGN_KEY_VIOLATION) {
+        throw new BadRequestException('Seçilen il veya ilçe geçersiz');
+      }
+      throw err;
+    }
   }
 
   async login(dto: LoginDto) {
     const result = await this.db.query<UserRow>(
-      `SELECT id, ad, soyad, telefon, email, "passwordHash", role, "isActive"
+      `SELECT id, ad, soyad, telefon, email, "passwordHash", rol, "sifreDegismeli"
        FROM "User" WHERE email = $1 AND "deletedAt" IS NULL`,
       [dto.email.toLowerCase()],
     );
     const user = result.rows[0];
 
     const passwordOk = user ? await bcrypt.compare(dto.password, user.passwordHash) : false;
-    if (!user || !user.isActive || !passwordOk) {
+    if (!user || !passwordOk) {
       throw new UnauthorizedException('Geçersiz e-posta veya şifre');
     }
+
+    // Pasif veya onay bekleyen işletmenin hesabı giremez (403, kodla birlikte).
+    const acc = await this.accounts.load(user.id);
+    if (!acc) throw new UnauthorizedException('Geçersiz e-posta veya şifre');
+    assertIsletmeAktif(acc);
 
     return this.issueSession(user);
   }
@@ -107,13 +165,17 @@ export class AuthService {
     }
     if (stored.expired) throw new UnauthorizedException();
 
+    const acc = await this.accounts.load(stored.userId);
+    if (!acc) throw new UnauthorizedException();
+    assertIsletmeAktif(acc);
+
     const userResult = await this.db.query<UserRow>(
-      `SELECT id, ad, soyad, telefon, email, "passwordHash", role, "isActive"
+      `SELECT id, ad, soyad, telefon, email, "passwordHash", rol, "sifreDegismeli"
        FROM "User" WHERE id = $1 AND "deletedAt" IS NULL`,
       [stored.userId],
     );
     const user = userResult.rows[0];
-    if (!user || !user.isActive) throw new UnauthorizedException();
+    if (!user) throw new UnauthorizedException();
 
     await this.db.query(`UPDATE "RefreshToken" SET "revokedAt" = now() WHERE id = $1`, [stored.id]);
     return this.issueSession(user);
@@ -130,8 +192,8 @@ export class AuthService {
 
   async me(auth: AuthUser): Promise<PublicUser> {
     const result = await this.db.query<PublicUser>(
-      `SELECT id, ad, soyad, telefon, email, role FROM "User"
-       WHERE id = $1 AND "isActive" = true AND "deletedAt" IS NULL`,
+      `SELECT id, ad, soyad, telefon, email, rol AS role FROM "User"
+       WHERE id = $1 AND "deletedAt" IS NULL`,
       [auth.sub],
     );
     const user = result.rows[0];
@@ -142,7 +204,7 @@ export class AuthService {
   private async issueSession(user: UserRow) {
     const accessToken = await this.jwt.signAsync({
       sub: user.id,
-      role: user.role,
+      role: user.rol,
       email: user.email,
     } satisfies AuthUser);
 
@@ -157,6 +219,7 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
+      sifreDegismeli: user.sifreDegismeli,
       user: this.toPublic(user),
     };
   }
@@ -168,7 +231,7 @@ export class AuthService {
       soyad: user.soyad,
       telefon: user.telefon,
       email: user.email,
-      role: user.role,
+      role: user.rol,
     };
   }
 

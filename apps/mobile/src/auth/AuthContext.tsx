@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { authApi, type RegisterInput } from '../api/endpoints';
 import {
+  ApiError,
   clearSession,
   getStoredRefreshToken,
   refreshAccess,
@@ -8,6 +9,7 @@ import {
   setOnUnauthorized,
 } from '../api/client';
 import type { User } from '../api/types';
+import { registerPush, unregisterPush } from '../notifications/push';
 
 type Status = 'loading' | 'signedOut' | 'signedIn';
 
@@ -41,8 +43,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const ok = await refreshAccess();
         if (!ok) return signOutLocally();
         const me = await authApi.me();
+        if (me.role !== 'MUSTERI') return signOutLocally();
         setUserState(me);
         setStatus('signedIn');
+        void registerPush();
       } catch {
         // Ağ hatası olabilir; token silinmez, kullanıcı giriş ekranına düşer.
         signOutLocally();
@@ -53,9 +57,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await authApi.login(email.trim().toLowerCase(), password);
+    // Mobil uygulama yalnızca müşteri hesaplarını kabul eder; işletme ve kuaför hesapları web panelini kullanır.
+    if (res.user.role !== 'MUSTERI') throw new ApiError(403, 'customer-only');
     await saveSession(res.accessToken, res.refreshToken);
     setUserState(res.user);
     setStatus('signedIn');
+    void registerPush();
   }, []);
 
   const register = useCallback(async (input: RegisterInput) => {
@@ -63,9 +70,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await saveSession(res.accessToken, res.refreshToken);
     setUserState(res.user);
     setStatus('signedIn');
+    void registerPush();
   }, []);
 
   const logout = useCallback(async () => {
+    // Cihaz kaydı, oturum kapanmadan önce silinmeli (istek yetkili).
+    await unregisterPush();
     const rt = await getStoredRefreshToken();
     if (rt) await authApi.logout(rt).catch(() => undefined);
     await clearSession();

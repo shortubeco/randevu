@@ -9,11 +9,15 @@ import { useAuth } from '../auth/AuthContext';
 import { colors } from '../components/ui';
 import { LoginScreen } from '../screens/LoginScreen';
 import { RegisterScreen } from '../screens/RegisterScreen';
-import { StylistsScreen } from '../screens/StylistsScreen';
+import { ShopsScreen } from '../screens/ShopsScreen';
+import { ShopStylistsScreen } from '../screens/ShopStylistsScreen';
 import { StylistDetailScreen } from '../screens/StylistDetailScreen';
 import { BookingScreen } from '../screens/BookingScreen';
 import { AppointmentsScreen } from '../screens/AppointmentsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
+import { NotificationsScreen } from '../screens/NotificationsScreen';
+import { UnreadProvider, useUnread } from '../notifications/unread';
+import { ReviewScreen } from '../screens/ReviewScreen';
 import type { RootStackParamList, TabParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -23,13 +27,15 @@ type IconName = ComponentProps<typeof Ionicons>['name'];
 
 // Sekme adı → [pasif ikon, aktif ikon]
 const TAB_ICONS: Record<keyof TabParamList, [IconName, IconName]> = {
-  Stylists: ['people-outline', 'people'],
+  Shops: ['business-outline', 'business'],
   Appointments: ['calendar-outline', 'calendar'],
+  Notifications: ['notifications-outline', 'notifications'],
   Profile: ['person-outline', 'person'],
 };
 
 function MainTabs() {
   const { t } = useTranslation();
+  const { unread } = useUnread();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -42,11 +48,20 @@ function MainTabs() {
         },
       })}
     >
-      <Tab.Screen name="Stylists" component={StylistsScreen} options={{ title: t('tabs.stylists') }} />
+      <Tab.Screen name="Shops" component={ShopsScreen} options={{ title: t('tabs.shops') }} />
       <Tab.Screen
         name="Appointments"
         component={AppointmentsScreen}
         options={{ title: t('tabs.appointments') }}
+      />
+      <Tab.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{
+          title: t('tabs.notifications'),
+          // Okunmamış bildirim sayısı: simgenin üzerinde kırmızı rozet.
+          tabBarBadge: unread > 0 ? unread : undefined,
+        }}
       />
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: t('tabs.profile') }} />
     </Tab.Navigator>
@@ -68,6 +83,7 @@ export function RootNavigator() {
   const signedIn = status === 'signedIn';
 
   return (
+    <UnreadProvider>
     <NavigationContainer>
       <Stack.Navigator
         screenOptions={{
@@ -78,8 +94,14 @@ export function RootNavigator() {
         {signedIn ? (
           <>
             <Stack.Screen name="Tabs" component={MainTabs} options={{ headerShown: false }} />
+            <Stack.Screen
+              name="ShopStylists"
+              component={ShopStylistsScreen}
+              options={({ route }) => ({ title: route.params.shopName })}
+            />
             <Stack.Screen name="StylistDetail" component={StylistDetailScreen} options={{ title: '' }} />
             <Stack.Screen name="Booking" component={BookingScreen} options={{ title: t('booking.title') }} />
+            <Stack.Screen name="Review" component={ReviewScreen} options={{ title: t('review.title') }} />
           </>
         ) : (
           <>
@@ -89,5 +111,6 @@ export function RootNavigator() {
         )}
       </Stack.Navigator>
     </NavigationContainer>
+    </UnreadProvider>
   );
 }

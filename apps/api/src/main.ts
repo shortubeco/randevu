@@ -5,6 +5,8 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api/v1');
+  // cPanel'de uygulama bir proxy arkasında çalışır; gerçek istemci IP'si için gerekli (istek sınırı).
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
   // Web paneli farklı bir alan adında (panel.sozcutvcanli.com) çalışır.
   // Kimlik Bearer token ile taşındığı için çerez/credentials gerekmez.

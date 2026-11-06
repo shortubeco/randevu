@@ -15,12 +15,15 @@ export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   Tabs: NavigatorScreenParams<TabParamList> | undefined;
+  ShopStylists: { shopId: number; shopName: string };
   StylistDetail: { stylistId: number };
   Booking: BookingParams;
+  Review: { appointmentId: number; kuaforAd: string; hizmet: string };
 };
 
 export type TabParamList = {
-  Stylists: undefined;
+  Shops: undefined;
   Appointments: undefined;
+  Notifications: undefined;
   Profile: undefined;
 };

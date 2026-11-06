@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { AuthUser } from '../auth/decorators';
 import { Role } from '../auth/roles.enum';
 import { DatabaseService } from '../database/database.service';
-import { dayStartMs, istanbulDate } from '../scheduling/scheduling';
+import { scopeStylistIds } from '../common/ownership';
+import { dayStartMs, istanbulDate, Sql } from '../scheduling/scheduling';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -23,23 +24,16 @@ function monthRange(y: number, m: number) {
   };
 }
 
+// Panel: işletme sahibi kendi işletmesinin, kuaför yalnızca kendisinin verilerini görür.
 @Injectable()
 export class DashboardService {
   constructor(private readonly db: DatabaseService) {}
 
-  async get(actor: AuthUser) {
-    const isAdmin = actor.role === Role.ADMIN;
+  private sql: Sql = (t, p) => this.db.query(t, p);
 
-    // KUAFOR yalnızca kendi kuaför kaydının verilerini görür.
-    let stylistId: number | null = null;
-    if (!isAdmin) {
-      const r = await this.db.query<{ id: number }>(
-        `SELECT id FROM "Stylist" WHERE "userId" = $1 AND "deletedAt" IS NULL`,
-        [actor.sub],
-      );
-      if (!r.rows[0]) throw new NotFoundException('Kuaför kaydı bulunamadı');
-      stylistId = r.rows[0].id;
-    }
+  async get(actor: AuthUser) {
+    const isOwner = actor.role === Role.ISLETME_SAHIBI;
+    const stylistIds = await scopeStylistIds(this.sql, actor);
 
     const now = new Date();
     const todayStr = istanbulDate(now.getTime());
@@ -57,10 +51,10 @@ export class DashboardService {
               COUNT(*) FILTER (WHERE a.status = 'TAMAMLANDI')::int AS tamamlanan,
               COALESCE(SUM(sv.fiyat) FILTER (WHERE a.status = 'TAMAMLANDI'), 0)::float8 AS ciro
        FROM "Appointment" a JOIN "Service" sv ON sv.id = a."serviceId"
-       WHERE a."deletedAt" IS NULL AND ($1::int IS NULL OR a."stylistId" = $1)
+       WHERE a."deletedAt" IS NULL AND a."stylistId" = ANY($1::int[])
          AND a.baslangic >= $2 AND a.baslangic < $3
        GROUP BY ay`,
-      [stylistId, seriesStart, month.to],
+      [stylistIds, seriesStart, month.to],
     );
     const byKey = new Map(seriesRows.rows.map((r) => [r.ay, r]));
     const monthly = Array.from({ length: 12 }, (_, i) => {
@@ -72,12 +66,12 @@ export class DashboardService {
 
     // 2) Bu ayın duruma göre dağılımı
     const statusRows = await this.db.query<{ status: string; adet: number }>(
-      `SELECT status::text AS status, COUNT(*)::int AS adet
+      `SELECT status AS status, COUNT(*)::int AS adet
        FROM "Appointment" a
-       WHERE a."deletedAt" IS NULL AND ($1::int IS NULL OR a."stylistId" = $1)
+       WHERE a."deletedAt" IS NULL AND a."stylistId" = ANY($1::int[])
          AND a.baslangic >= $2 AND a.baslangic < $3
        GROUP BY status`,
-      [stylistId, month.from, month.to],
+      [stylistIds, month.from, month.to],
     );
 
     // 3) Bugünkü sayılar ve onay bekleyenler
@@ -85,8 +79,8 @@ export class DashboardService {
       `SELECT COUNT(*) FILTER (WHERE a.baslangic >= $2 AND a.baslangic < $3 AND a.status <> 'IPTAL')::int AS bugun,
               COUNT(*) FILTER (WHERE a.status = 'BEKLIYOR' AND a.baslangic >= $4)::int AS bekleyen
        FROM "Appointment" a
-       WHERE a."deletedAt" IS NULL AND ($1::int IS NULL OR a."stylistId" = $1)`,
-      [stylistId, todayStart, todayEnd, now],
+       WHERE a."deletedAt" IS NULL AND a."stylistId" = ANY($1::int[])`,
+      [stylistIds, todayStart, todayEnd, now],
     );
 
     // 4) Bugünün randevu listesi
@@ -99,15 +93,15 @@ export class DashboardService {
        JOIN "User" ku ON ku.id = s."userId"
        JOIN "Service" sv ON sv.id = a."serviceId"
        JOIN "User" cu ON cu.id = a."customerId"
-       WHERE a."deletedAt" IS NULL AND ($1::int IS NULL OR a."stylistId" = $1)
+       WHERE a."deletedAt" IS NULL AND a."stylistId" = ANY($1::int[])
          AND a.baslangic >= $2 AND a.baslangic < $3
        ORDER BY a.baslangic`,
-      [stylistId, todayStart, todayEnd],
+      [stylistIds, todayStart, todayEnd],
     );
 
     const kpi = kpiRows.rows[0];
     const result: Record<string, unknown> = {
-      scope: isAdmin ? 'ADMIN' : 'KUAFOR',
+      scope: isOwner ? 'ISLETME_SAHIBI' : 'KUAFOR',
       kpi: {
         bugun: kpi.bugun,
         bekleyen: kpi.bekleyen,
@@ -120,53 +114,22 @@ export class DashboardService {
       bugunList: todayList.rows,
     };
 
-    if (isAdmin) {
-      const totals = await this.db.query(
-        `SELECT
-           (SELECT COUNT(*)::int FROM "User" WHERE role = 'MUSTERI' AND "deletedAt" IS NULL) AS musteri,
-           (SELECT COUNT(*)::int FROM "Stylist" s JOIN "User" u ON u.id = s."userId"
-              WHERE s."deletedAt" IS NULL AND u."isActive") AS kuafor,
-           (SELECT COUNT(*)::int FROM "Service" WHERE "deletedAt" IS NULL AND aktif) AS hizmet`,
-      );
-      Object.assign(result.kpi as object, totals.rows[0]);
-
+    if (isOwner) {
       const stylists = await this.db.query(
-        `SELECT s.id, u.ad, u.soyad, u."isActive",
+        `SELECT s.id, u.ad, u.soyad, s.aktif,
                 COUNT(a.id) FILTER (WHERE a.status <> 'IPTAL')::int AS "buAy",
                 COALESCE(SUM(sv.fiyat) FILTER (WHERE a.status = 'TAMAMLANDI'), 0)::float8 AS ciro
          FROM "Stylist" s
          JOIN "User" u ON u.id = s."userId"
          LEFT JOIN "Appointment" a ON a."stylistId" = s.id AND a."deletedAt" IS NULL
-           AND a.baslangic >= $1 AND a.baslangic < $2
+           AND a.baslangic >= $2 AND a.baslangic < $3
          LEFT JOIN "Service" sv ON sv.id = a."serviceId"
-         WHERE s."deletedAt" IS NULL
-         GROUP BY s.id, u.ad, u.soyad, u."isActive"
+         WHERE s.id = ANY($1::int[]) AND s."deletedAt" IS NULL
+         GROUP BY s.id, u.ad, u.soyad, s.aktif
          ORDER BY "buAy" DESC, u.ad`,
-        [month.from, month.to],
+        [stylistIds, month.from, month.to],
       );
-
-      const services = await this.db.query(
-        `SELECT sv.id, sv.ad, sv."sureDk", sv.fiyat::float8 AS fiyat, sv.aktif,
-                COUNT(a.id) FILTER (WHERE a.status <> 'IPTAL')::int AS "buAy",
-                COALESCE(SUM(sv.fiyat) FILTER (WHERE a.status = 'TAMAMLANDI'), 0)::float8 AS ciro
-         FROM "Service" sv
-         LEFT JOIN "Appointment" a ON a."serviceId" = sv.id AND a."deletedAt" IS NULL
-           AND a.baslangic >= $1 AND a.baslangic < $2
-         WHERE sv."deletedAt" IS NULL
-         GROUP BY sv.id, sv.ad, sv."sureDk", sv.fiyat, sv.aktif
-         ORDER BY "buAy" DESC, sv.ad`,
-        [month.from, month.to],
-      );
-
-      const recentCustomers = await this.db.query(
-        `SELECT id, ad, soyad, telefon, "createdAt" FROM "User"
-         WHERE role = 'MUSTERI' AND "deletedAt" IS NULL
-         ORDER BY "createdAt" DESC LIMIT 5`,
-      );
-
       result.kuaforler = stylists.rows;
-      result.hizmetler = services.rows;
-      result.sonMusteriler = recentCustomers.rows;
     }
 
     return result;

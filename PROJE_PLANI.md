@@ -1,149 +1,93 @@
-# Kuaför Randevu Takip Uygulaması – Proje Planı
+# Kuaför Randevu SaaS – Proje Planı
 
 ## Amaç
-Öğrencilerin mobil uygulamadan kuaför randevusu oluşturduğu, yöneticilerin (admin ve kuaför) PC'den web paneli ile yönettiği bir sistem.
+Birden fazla kuaför işletmesinin (abonelik planlı) dükkanlarını, kuaförlerini ve hizmetlerini web panelinden yönettiği; müşterilerin mobil uygulamadan şehir ve ilçe seçerek randevu aldığı bir SaaS.
 
-## Durum (son güncelleme: 2026-11-06)
-- Tek salon için API, web paneli ve veritabanı çalışır durumda ve canlıya alınmış.
-- Mobil uygulama (`apps/mobile`, Expo SDK 58) ilk sürümüyle yazıldı: giriş/kayıt, kuaför listesi, randevu alma, randevularım (iptal/değiştirme), profil. Müşterinin asıl ürünü. TypeScript, lint ve Android bundle kontrolleri geçiyor; cihazda (Expo Go) henüz test edilmedi.
-- Backend testlerinin bir kısmı kullanıcı tarafından şimdilik durduruldu (bkz. "Test durumu").
+## Durum (son güncelleme: 2026-11-07)
+- **Web paneli** (`panel.sozcutvcanli.com`): landing, işletme kaydı, işletme paneli, platform admin paneli yayında. Redux Toolkit (RTK Query) ile çalışıyor; sayfalar arası gezintide veri önbellekten gelir, sekme yenilenince sunucudan çekilir.
+- **API** (`api.sozcutvcanli.com`): SaaS şemasına uyarlandı, yayında. Okuma, giriş ve kısıtlar canlıda doğrulandı; yazma akışları canlıda test edildi.
+- **Veritabanı:** SaaS şeması kuruldu. Test verisi (İstanbul, İzmir, Ankara; yaklaşık 5000 randevu) yüklü. Tüm test hesapları `@test.local`.
+- **Mobil uygulama** (`apps/mobile`): Yeni API'ye uyarlandı (dükkan seçimi, `shopId` ile kuaförler, yeni randevu akışı). Android APK ile telefonda kuruldu; müşteri girişi cihazda doğrulandı. Dükkan → randevu akışı cihazda henüz uçtan uca denenmedi.
+- Landing'de ilk 10 kuaför ve İstanbul, İzmir, Ankara şehir listeleri gösteriliyor (en az 3 değerlendirmesi olan kuaförler).
 
 ## Alınan Kararlar
-- **Stack:** TypeScript her yerde.
-  - Mobil: React Native (Expo SDK 58), React Navigation v7, i18next, expo-secure-store, @expo/vector-icons. Node 22.13+ gerekli.
-  - Web panel: React + Vite + TypeScript, **Bootstrap 5** (`bootstrap`, `bootstrap-icons`), react-router-dom v6, react-i18next (TR varsayılan, EN). Tailwind ve MUI kullanılmıyor.
-  - Backend: NestJS + PostgreSQL. **ORM yok**, `pg` Pool ile ham SQL. Prisma denendi ve kaldırıldı: paylaşımlı hosting'de `prisma generate` bellek sınırında çöküyor.
-- **Saat modeli:** Kuaföre özel çalışma saatleri, mola ve izin günleri. Slot aralığı kuaförün `slotDakika` değeri. Çift rezervasyon engellenir.
-- **Zaman dilimi:** Saatler Europe/Istanbul olarak yorumlanır (sabit UTC+03:00, DST yok). Veritabanında randevu ve izin zamanları `TIMESTAMPTZ`.
-- **Müşteri girişi:** E-posta + şifre. Access token JWT (15 dk). Refresh token rastgele 48 byte, veritabanında yalnızca SHA-256 hash'i, 30 gün, her yenilemede döner. Yeniden kullanılan iptal edilmiş token tüm oturumları kapatır.
-- **Şifre değişince:** Tüm refresh token'lar iptal edilir. Panel oturumu kapatıp yeniden giriş ister.
-- **Şifre sıfırlama:** E-posta ile sıfırlama planlandı, henüz uygulanmadı. Yalnızca admin kuaförün şifresini sıfırlayabiliyor (yeni şifre elle iletiliyor).
-- **MVP ek özellikler:**
-  - Hizmet seçimi (süre ve fiyat): uygulandı
-  - Müşteri iptal/değişiklik (2 saat kuralı): uygulandı, test edilmedi
-  - Kuaför izin günleri: uygulandı
-  - Push bildirim ve hatırlatma: planlandı
-  - Puan/değerlendirme: şemada `Review` tablosu var, endpoint yok
 
-## Roller ve Yetkiler
+### Ürün ve iş modeli
+- **Tek uygulama, çok işletme:** İşletmeler kendi hesabıyla kayıt olur. Müşteri tek mobil uygulamadan tüm işletmelere ulaşır.
+- **Ödeme:** Manuel havale/EFT. Ödeme bilgileri platform admininin panelden girdiği havale ayarından gelir. Ödeme entegrasyonu yok.
+- **Abonelik:** Aylık. Ödeme günü her işletme için admin tarafından belirlenir (ayın günü; 29–31 kısa aylarda ayın son gününe kayar). Ücret ve plan, admin dışında değişmez.
+- **Pasife alma ve aktif etme:** Admin elle yapar. Otomatik pasife alma yok. Pasif işletmenin sahibi ve kuaförleri giriş yapamaz; müşteriye pasif dükkan listelenmez, mevcut randevular kalır, yeni randevu alınamaz.
+- **Deneme süresi yok.** Ücretsiz plan doğrudan kullanılabilir (ama onay bekler).
+- **Onay:** Her işletme (ücretsiz dahil) admin onayı bekler. Ücretli planda onay, havale kontrol edildikten sonra ve ilk ödeme tarihi girilerek yapılır.
+- **Plan düşürme yok.** Plan limiti dolunca yeni ekleme engellenir; mevcut kayıtlara dokunulmaz.
 
-| Rol | Platform | Yetkiler |
-|---|---|---|
-| ADMIN | Web panel | Kuaför ekle/düzenle/pasifleştir/sil, hizmet ekle/düzenle/sil, kuaför hizmet ataması. Tüm randevuları listele (kuaför/durum/tarih filtresi), onayla, iptal et, tamamla, gelmedi işaretle, sil. Müşteri listesi, raporlar, dashboard. |
-| KUAFOR | Web panel | Yalnızca kendi randevuları: onayla, iptal et, tamamla, sil. Kendi profili ve şifresi. Çalışma saatleri ve izin günleri. Dashboard (yalnızca kendi verisi). |
-| MUSTERI | Mobil | Kayıt/giriş, profil güncelleme, randevu oluşturma, randevularını görüntüleme/iptal/değiştirme. Değerlendirme: planlandı. |
+### Planlar (sabit limitler, fiyat admin panelinden)
 
-Yetki kontrolü backend'de yapılır (`JwtAuthGuard` ve `RolesGuard` global, `@Roles`, sahiplik kontrolü). Başkasının kaynağı 404 döner. İstemci gizlemesine güvenilmez.
+| Plan | Dükkan | Kuaför (dükkan başına) | Hizmet (kuaför başına) |
+|---|---|---|---|
+| Ücretsiz | 1 | 1 | 4 |
+| Silver | 1 | sınırsız | sınırsız |
+| Gold | sınırsız | sınırsız | sınırsız |
 
-## Veri Modeli
+### Yapı
+- Her kuaför tek dükkanda çalışır.
+- Hizmetler kuaföre bağlıdır; aynı dükkandaki kuaförler farklı hizmet verebilir.
+- Puanlama kuaför bazındadır; dükkan puanı yoktur.
+- Kuaför hesabını işletme sahibi oluşturur: e-posta ve geçici şifre verir, kuaför ilk girişte şifresini değiştirir.
 
-Şema: `apps/api/db/schema.sql` (ilk kurulum) ve `apps/api/db/migrations/` (sonraki değişiklikler). Tablo ve kolon adları tırnaklı camelCase.
+### Roller
+- **PLATFORM_ADMIN:** İşletme onayı, ödeme takibi ve onayı, ödeme günü, aktif/pasif, plan fiyatları, havale ayarı, denetim kaydı.
+- **ISLETME_SAHIBI:** Kendi dükkanları, kuaförleri, hizmetleri, çalışma saatleri ve izinleri; kendi randevuları ve panel verileri.
+- **KUAFOR:** Kendi randevuları, çalışma saatleri, izinleri, profili.
+- **MUSTERI:** Yalnızca mobil uygulama. Web panelinde giriş yapamaz.
 
-- **User:** id, ad, soyad, telefon, email, passwordHash, role, isActive, deletedAt
-- **Stylist:** userId, bio, fotoğraf, slotDakika, isActive, deletedAt
-- **Service:** ad, süreDk, fiyat, aktif, deletedAt
-- **StylistService:** hangi kuaför hangi hizmeti verir
-- **WorkingHours:** stylistId, gün (0=Pazar..6=Cumartesi), başlangıç, bitiş, mola
-- **TimeOff:** stylistId, başlangıç, bitiş, sebep
-- **Appointment:** customerId, stylistId, serviceId, başlangıç, bitiş, status (BEKLIYOR / ONAYLANDI / IPTAL / TAMAMLANDI / GELMEDI), iptalEden, not, deletedAt
-  - Çakışma engeli: randevu oluşturulurken kuaförün `Stylist` satırı `SELECT ... FOR UPDATE` ile kilitlenir (transaction). Exclusion constraint kullanılmıyor (`btree_gist` süper kullanıcı istiyor).
-- **RefreshToken:** migration 002 ile eklendi
-- **Review:** appointmentId (benzersiz), puan (1-5), yorum. Tablo var, endpoint yok.
-- **DeviceToken:** userId, expoPushToken (benzersiz). Tablo var, endpoint yok.
-- **NotificationLog:** tablo var, kullanılmıyor.
+### Müşteri akışı (mobil)
+- Kayıt: ad, soyad, telefon, e-posta, şifre, şifre tekrarı.
+- Giriş sonrası şehir ve ilçe seçimi (Türkiye il/ilçe verisi).
+- İlçedeki aktif dükkanlar: önce Gold, sonra Silver, sonra Ücretsiz. İsteğe bağlı hizmet filtresi.
+- Sıra: dükkan → kuaför → hizmet → saat.
 
-## API (REST, `/api/v1`)
+### Puanlama ve landing
+- Puan kuaför bazındadır. Landing listelerine girmek için en az 3 değerlendirme gerekir.
+- Landing: istatistikler (aktif işletme, kuaför, değerlendirme), en yüksek puanlı ilk 10 kuaför, İstanbul/İzmir/Ankara'nın kendi en iyileri, renkli plan kartları.
 
-Varsayılan olarak tüm uç noktalar giriş ister. Herkese açıklar `@Public()` ile işaretlenir. Route sırası: `me` rotaları `:id` rotalarından önce.
+## Veri modeli (özet)
+- Güncel şema: `apps/api/db/saas-schema.sql`.
+- Hiyerarşi: `Isletme` (abonelik, plan, durum, ödeme günü) → `Dukkan` (il/ilçe) → `Stylist` (tek dükkan) → `Service` (kuaföre bağlı).
+- Ek tablolar: `Plan` (limitler, fiyat), `Il`/`Ilce` (Türkiye verisi), `Odeme` (onaylanan ödemeler; `isletmeId` + `odemeTarihi` tekil), `AdminIslem` (yönetici denetim kaydı), `Ayar` (havale bilgisi).
+- Plan limitleri veritabanında zorlanmaz; ekleme sırasında uygulama işletme satırını kilitleyip kontrol eder.
 
-- **Sağlık:** `GET /health` → `{"status":"ok","database":"ok"}` (uygulandı)
-- **Auth:** register (her zaman MUSTERI), login, refresh, logout, me (uygulandı). Forgot/reset password: yapılacak.
-- **Profil:** `PATCH /auth/me` (ad, soyad, telefon), `POST /auth/change-password` (uygulandı)
-- **Hizmetler:** `GET /services` (aktif hizmetler). Admin: `/admin/services` listele, tek kayıt, ekle, güncelle, sil (uygulandı)
-- **Kuaförler:**
-  - `GET /stylists`, `GET /stylists/:id`, `GET /stylists/:id/services` (uygulandı)
-  - `GET/PATCH /stylists/me` (KUAFOR, uygulandı)
-  - Admin: `/admin/stylists` listele, oluştur (KUAFOR kullanıcısı ve kuaför kaydı tek transaction), tek kayıt, `PATCH /:id` (isActive, opsiyonel yeni şifre), sil, `PUT /:id/services` (uygulandı)
-- **Müsaitlik:** `GET /stylists/:id/availability?date&serviceId` (çalışma saatleri − izinler − aktif randevular, uygulandı)
-- **Çalışma saatleri ve izinler:**
-  - KUAFOR: `GET/PUT /stylists/me/working-hours`, `GET/POST /stylists/me/time-off`, `DELETE /stylists/me/time-off/:tid`
-  - Admin: aynısı `/admin/stylists/:id/...` altında
-  - Uygulandı
-- **Randevular:**
-  - MUSTERI: `POST /appointments`, `GET /appointments/mine`, `PATCH /appointments/:id/cancel`, `PATCH /appointments/:id/reschedule` (değişiklikte durum tekrar BEKLIYOR). İptal ve değişiklik randevuya 2 saatten az kala yapılamaz.
-  - KUAFOR: `GET /appointments/stylist`, `PATCH /appointments/:id/status`, `DELETE /appointments/:id` (yalnızca kendi randevuları)
-  - ADMIN: `GET /admin/appointments?stylistId&status&from&to`, durum ve silme uç noktaları
-  - Durum geçişleri: `BEKLIYOR → ONAYLANDI | IPTAL`, `ONAYLANDI → TAMAMLANDI | GELMEDI | IPTAL`. Diğerleri 400.
-  - Uygulandı (müşteri iptal/değişiklik ve admin listesi test edilmedi)
-- **Müşteriler ve raporlar:**
-  - `GET /admin/customers` (müşteri listesi, randevu sayısı, uygulandı)
-  - `GET /admin/reports?from&to` (duruma göre sayılar, kuaför bazlı ciro; ciro yalnızca TAMAMLANDI, uygulandı)
-- **Dashboard:** `GET /dashboard` (ADMIN ve KUAFOR). KPI, 12 aylık seri, bu ayın durumları, bugünkü randevular. ADMIN'e ek olarak kuaför ve hizmet tabloları, son müşteriler. Ay sınırları Istanbul saatine göre. Uygulandı.
-- **Değerlendirme:** planlandı, önerilen yol `POST /appointments/:id/review` (henüz karar verilmedi)
-- **Cihaz tokenı:** planlandı, önerilen yol `POST /devices` (Expo Push için, henüz karar verilmedi)
+## Test ve doğrulama
+- Test verisi dosyaları ve kurulum sırası: `CLAUDE.md` içindeki "Veritabanı" bölümü.
+- Canlıda doğrulananlar: okuma uç noktaları, giriş kısıtları (pasif, onay bekleyen, geçici şifre), yönetici listeleri, ödeme takibi, landing verisi, kayıt, onay, ödeme onayı, randevu onayı, dükkan ve kuaför düzenleme, panel önbelleği.
+- Mobil: müşteri girişi cihazda doğrulandı. Dükkan → kuaför → hizmet → saat → randevu akışı ve randevu ekranı henüz uçtan uca denenmedi.
+- Henüz test edilmedi: bildirim gönderimi, müşterinin iptal ve değişikliği (mobil), hatırlatma cron işi.
+- Yük ve eşzamanlılık testi yapılmadı.
 
-## Mobil Uygulama (Expo) Ekranları
-- **Yazıldı (cihazda test bekliyor):** Giriş/Kayıt → Kuaför listesi → Kuaför detayı ve hizmet seçimi → Randevu al (gün seçimi, boş saatler, özet, onay) → Randevularım (yaklaşan/geçmiş, iptal, değiştirme) → Profil (bilgi güncelleme, şifre değiştirme, dil, çıkış)
-- **Plandan sapma:** Randevu akışında ayrı bir ad/soyad/telefon adımı yok. Bu bilgiler hesaptan gelir ve profilde düzenlenir.
-- **Yapılmadı:** Değerlendirme ekranı (API endpoint'i de yok), bildirimler ekranı, şifre sıfırlama.
-
-## Web Panel Sayfaları (uygulandı)
-- **Ortak:** Giriş, Dashboard (`/`), Randevular (`/randevular`: tarih ve durum filtresi, onayla/iptal/tamamla/gelmedi/sil), Profilim (`/profil`: kişisel bilgiler, şifre değiştirme)
-- **Admin:** Kuaförler (`/kuaforler`, düzenleme sayfası: bilgiler, slot süresi, aktiflik, isteğe bağlı yeni şifre, hizmet ataması), Hizmetler (`/hizmetler`, düzenleme sayfası), Müşteriler (`/musteriler`, arama kutulu), Raporlar (`/raporlar`)
-- **Kuaför:** Çalışma saatleri ve izinler (`/calisma`), dashboard (kendi verisi)
-- Dil: Türkçe ve İngilizce. Dil tercihi `localStorage` `lang` anahtarında.
-- Saatler `Europe/Istanbul` ile gösterilir.
-- Grafik: tek seri, tek eksenli CSS çubuk grafik (`BarChart`), kütüphane yok.
-- Bilinen eksikler: müşteri paneli yok (müşteri yalnızca mobilden kullanır). Raporlar yalnızca tarih aralığı ve durum/kuaför bazlı.
-
-## Öneriler (henüz onaylanmadı)
-- Randevu onay modu: kuaför onayı uygulandı. Otomatik onay seçeneği ayarlanabilir hale getirilebilir.
-- No-show sayacı ve tekrarlarda kısıtlama (2 saat kuralı uygulandı, sayaç yok).
-- Öğrenci doğrulaması (öğrenci e-postası veya öğrenci indirimi). İhtiyaç belirsiz.
-- KVKK: aydınlatma metni, hesap silme özelliği. Yapılmadı.
-- Admin denetim kaydı (audit log): kim neyi sildi/iptal etti. Yapılmadı.
-- Gelecek sürüm: SMS (NetGSM vb.), ödeme/kapora, iOS + Android yayını, çoklu şube.
-
-## Aşamalar
-
-1. **[x] Kurulum:** monorepo (`apps/api`, `apps/web`, `apps/mobile`), veritabanı şeması, cPanel dağıtımı. `packages/shared` yok. CI yok; API'de lint ve test script'i yok, mobilde lint var.
-2. **[x] Backend çekirdeği:** auth, roller, kuaför ve hizmet CRUD. Refresh token rotasyonu uygulandı.
-3. **[x] Müsaitlik + randevu:** oluşturma, çakışma kontrolü, durum akışı. Müşteri iptal/değişiklik ve 2 saat kuralı kodda var, test edilmedi.
-4. **[x] Web panel:** admin ve kuaför akışları, dashboard, düzenleme sayfaları, profil. Canlı: `panel.sozcutvcanli.com`. Dashboard ve düzenleme akışlarının sunucuda testi yapılmadı.
-5. **[~] Mobil uygulama:** müşteri akışı (`apps/mobile`, Expo). İlk sürüm yazıldı (ekranlar bölümüne bakın). Cihazda uçtan uca test ve düzeltmeler bekliyor. Değerlendirme ve bildirimler bu aşamaya dahil değil.
-6. **[ ] Bildirimler ve değerlendirme:** Expo Push, zamanlanmış hatırlatma job'ı, `POST /devices`, değerlendirme endpoint'i ve `Review` kullanımı. Başlanmadı.
-7. **[~] Test, güvenlik, deploy:**
-   - Deploy: API ve web, Namecheap paylaşımlı hosting (cPanel Node.js App ve statik dosya). Yapıldı.
-   - Yapılacak: rate limit (`register`, `login`), `npm install` ile gelen 22 güvenlik uyarısının incelenmesi, uçtan uca testler, KVKK maddeleri, EAS build (mobil) için hazırlık.
-
-## Test durumu
-- Sunucuda doğrulandı: müsaitlik, randevu alma, kuaförün onaylaması, çakışma (409), mola ve çalışma saati dışı istek (400).
-- Test edilmedi: müşteri iptal/değişiklik, 2 saat kuralı, admin randevu listesi, panelin dashboard ve düzenleme akışları. Bu testler kullanıcı tarafından sunucuda yapılacak.
-- Mobil: TypeScript, lint ve Android bundle derlemesi geçiyor. Cihazda (Expo Go) çalıştırılıp bir müşteri akışı (kayıt → randevu al → randevularım → iptal/değiştir) denenmedi.
-- Yük testi (eşzamanlı aynı slot isteği) yapılmadı.
+## Dış bağımlılıklar (kullanıcı tarafında)
+- **E-posta:** cPanel'de bir e-posta hesabı ve SMTP bilgileri (kayıt, onay ve şifre sıfırlama bildirimleri için).
+- **Push (cihaz banner'ı):** Firebase projesi, Android uygulaması (`com.sozcutvcanli.randevu`), FCM hizmet hesabı anahtarı; `eas-cli credentials` ile EAS'a yükleme.
+- **Hatırlatma cron işi:** cPanel Cron Jobs, 15 dakikada bir `POST /api/v1/internal/reminders/run` (`x-cron-secret` başlığı). Kurulumu doğrulanmadı.
+- **Gerçek IBAN ve banka bilgisi:** havale ayarına admin panelinden girilmeli (şu an test değeri).
 
 ## Yapılacaklar (öncelik sırasıyla)
-1. Müşteri iptal/değişiklik ve 2 saat kuralının sunucuda testi
-2. `register` ve `login` için rate limit
-3. Şifre sıfırlama (e-posta) kararı ve uygulaması
-4. Mobil uygulamanın cihazda test edilmesi ve bulunan hataların giderilmesi
-5. Push bildirim, hatırlatma job'ı, değerlendirme endpoint'i ve mobil değerlendirme ekranı
-6. `npm install` güvenlik uyarılarının incelenmesi
-7. KVKK: aydınlatma metni, hesap silme. Admin denetim kaydı.
+1. **Mobil uygulamayı cihazda uçtan uca denemek:** dükkan seçimi (şehir/ilçe), kuaför, hizmet, saat ve randevu oluşturma. Kod uyarlaması tamamlandı; sorun çıkarsa yeni APK derlenir.
+2. **Üretim admin hesabı:** gerçek platform admini oluşturulması.
+3. **Test verisinin temizliği:** canlıdaki test ve QA kayıtlarının silinmesi (gerçek kullanıma geçmeden önce).
+4. **Ödeme takibi rozeti:** dönem tarihini göstermek (şu an onay tarihi gösteriliyor).
+5. **E-posta bildirimleri:** SMTP bilgisi gelince kayıt, onay, şifre sıfırlama.
+6. **Android FCM** kimlik bilgisini EAS'a yükleyip cihaz banner'ını test etmek.
+7. **Hatırlatma cron işini** kurup doğrulamak.
+8. **Müşteri iptal/değişiklik** ve 2 saat kuralının uçtan uca testi (mobil).
+9. **Güvenlik:** `npm install` uyarıları (API 22, mobil 12) ve KVKK (aydınlatma metni, hesap silme).
+10. **Kuaför hizmet düzenlemesi:** şu an yalnızca işletme sahibi yapabiliyor; karar verilmesi gerekiyor.
 
-## Doğrulama
-- Backend testleri (henüz yazılmadı, test script'i yok). Hedef:
-  - Çakışma kontrolü
-  - Kuaför başkasının randevusuna erişemez
-  - Müşteri yalnızca kendi randevusunu görür
-- Eşzamanlı iki isteğin aynı slotu alamadığını doğrulayan yük testi
-- Uçtan uca: mobilde randevu oluştur → panelde kuaför onaylar → müşteride durum güncellenir
-- Rol bazlı manuel senaryolar (admin / kuaför / müşteri)
-
-## Netleşen Kararlar
-- **Şube:** Tek salon. Şube modeli yok.
-- **Onay:** Kuaför onaylar. Randevu BEKLIYOR durumuna düşer; kuaför veya admin onaylar ya da reddeder.
-- **Ödeme:** Yalnızca bilgi. Fiyat gösterilir, ödeme uygulama dışında alınır. Ödeme entegrasyonu yok.
-- **Dil:** Türkçe + İngilizce. Çeviri dosyaları (`tr.json`, `en.json`) ve dil seçimi web panelde (`localStorage`) ve mobilde (SecureStore) uygulandı.
-- **Hosting:** Namecheap paylaşımlı hosting, cPanel. Railway/Render/VPS seçeneği kullanılmıyor.
-- **Veritabanı:** PostgreSQL 10.23 (cPanel). Migration'lar elle uygulanır, migration aracı yok.
+## Netleşen Kararlar (özet)
+- **Şube:** Her dükkan ayrı bir işletme değil, işletmenin dükkanıdır; işletme (abonelik) altında birden fazla dükkan olabilir (Gold).
+- **Onay:** Yönetici onaylar. Kuaför işletme sahibi tarafından eklenir.
+- **Dil:** Türkçe + İngilizce (web ve mobil).
+- **Hosting:** Namecheap paylaşımlı hosting, cPanel. Railway/Render/VPS kullanılmıyor.
+- **Veritabanı:** PostgreSQL 10.23 (cPanel). Şema dosyaları elle uygulanır; phpPgAdmin'de `DO $$` blokları kullanılmaz.
+- **Bildirim kanalı:** Uygulama içi bildirim, sekme rozeti ve Expo push. SMS yok.
+- **Mobil dağıtım:** Android için EAS ile APK. Mağaza yayını henüz yok.
+- **Web panel önbellek:** Gezintide veri store'dan; sekme yenilenince sunucudan. Yazma işlemleri yalnızca etkilenen veriyi yeniler.

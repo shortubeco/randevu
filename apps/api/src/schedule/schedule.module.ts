@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { AdminScheduleController, OwnScheduleController } from './schedule.controller';
+import { OwnScheduleController, OwnerScheduleController } from './schedule.controller';
 import { ScheduleService } from './schedule.service';
 
 @Module({
-  controllers: [OwnScheduleController, AdminScheduleController],
+  controllers: [OwnScheduleController, OwnerScheduleController],
   providers: [ScheduleService],
   exports: [ScheduleService],
 })

@@ -1,99 +1,74 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import { ApiError, setPasswordChangeHandler, setSessionExpiredHandler } from '../api/client';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
-  api,
-  clearSession,
-  getRefreshToken,
-  refreshSession,
-  setSession,
-  setSessionExpiredHandler,
-} from '../api/client';
+  endSession,
+  login as loginThunk,
+  logout as logoutThunk,
+  passwordChangeNeeded,
+  refreshUser as refreshUserThunk,
+  restoreSession,
+  type User,
+} from '../store/authSlice';
 
-export type Role = 'ADMIN' | 'KUAFOR' | 'MUSTERI';
+// Oturum durumu Redux'ta (authSlice). Bu bileşen yalnızca açılışta oturumu geri yükler
+// ve API istemcisinin oturum olayları (süre dolumu, geçici şifre) Redux'a iletilir.
+export type { Role, User } from '../store/authSlice';
 
-export interface User {
-  id: number;
-  ad: string;
-  soyad: string;
-  telefon: string;
-  email: string;
-  role: Role;
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    setSessionExpiredHandler(() => {
+      dispatch(endSession());
+    });
+    setPasswordChangeHandler(() => {
+      dispatch(passwordChangeNeeded());
+    });
+    // Sayfa yenilenince (store boşken) refresh token ile oturumu sunucudan geri yükle.
+    dispatch(restoreSession());
+    return () => {
+      setSessionExpiredHandler(null);
+      setPasswordChangeHandler(null);
+    };
+  }, [dispatch]);
+
+  return <>{children}</>;
 }
 
-interface AuthState {
+interface AuthApi {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  // Sunucudan kullanıcı bilgisini yeniden okur (profil güncellemesinden sonra).
   refreshUser: () => Promise<void>;
-  // Yerel oturumu sunucu çağrısı yapmadan kapatır (şifre değişiminden sonra).
   endSession: () => void;
 }
 
-const AuthContext = createContext<AuthState | null>(null);
+// Sayfalar bu kancayı kullanır; durum Redux'tan okunur.
+export function useAuth(): AuthApi {
+  const dispatch = useAppDispatch();
+  const user = useAppSelector((s) => s.auth.user);
+  const loading = useAppSelector((s) => s.auth.loading);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  // Oturum sunucuda geçersiz kılınırsa kullanıcı çıkarılır ve giriş ekranına yönlendirilir.
-  useEffect(() => {
-    setSessionExpiredHandler(() => setUser(null));
-    return () => setSessionExpiredHandler(null);
-  }, []);
-
-  // Sayfa yenilendiğinde kayıtlı refresh token ile oturumu geri yükle.
-  useEffect(() => {
-    (async () => {
-      try {
-        if (getRefreshToken() && (await refreshSession())) {
-          setUser(await api<User>('/auth/me'));
-        }
-      } catch {
-        // Ağ hatası gibi geçici bir sorunda refresh token silinmez; sunucu oturumu
-        // reddetmişse refreshSession zaten temizler. Kullanıcı yalnızca giriş ekranına döner.
-      } finally {
-        setLoading(false);
+  return {
+    user,
+    loading,
+    login: async (email, password) => {
+      const result = await dispatch(loginThunk({ email, password }));
+      if (loginThunk.rejected.match(result)) {
+        const p = result.payload;
+        throw new ApiError(p?.status ?? 0, p?.message ?? 'Bir hata oluştu', p?.code);
       }
-    })();
-  }, []);
-
-  async function login(email: string, password: string) {
-    const data = await api<{ accessToken: string; refreshToken: string; user: User }>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
-    setSession(data.accessToken, data.refreshToken);
-    setUser(data.user);
-  }
-
-  function endSession() {
-    clearSession();
-    setUser(null);
-  }
-
-  function logout() {
-    const rt = getRefreshToken();
-    if (rt) {
-      // Sunucu tarafını beklemeden yerel oturumu kapatır.
-      api('/auth/logout', { method: 'POST', body: JSON.stringify({ refreshToken: rt }) }).catch(() => {});
-    }
-    endSession();
-  }
-
-  async function refreshUser() {
-    setUser(await api<User>('/auth/me'));
-  }
-
-  return (
-    <AuthContext.Provider value={{ user, loading, login, logout, refreshUser, endSession }}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
-
-export function useAuth(): AuthState {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth AuthProvider içinde kullanılmalı');
-  return ctx;
+    },
+    logout: () => {
+      dispatch(logoutThunk());
+    },
+    refreshUser: async () => {
+      await dispatch(refreshUserThunk()).unwrap();
+    },
+    endSession: () => {
+      dispatch(endSession());
+    },
+  };
 }

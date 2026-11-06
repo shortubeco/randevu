@@ -1,125 +1,220 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useParams } from 'react-router-dom';
-import { api, ApiError } from '../api/client';
-import type { AdminStylist } from '../types';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import {
+  useCreateServiceMutation,
+  useDeleteServiceMutation,
+  useDeleteStylistMutation,
+  useOwnerStylistQuery,
+  useStylistReviewsQuery,
+  useStylistServicesQuery,
+  useUpdateServiceMutation,
+  useUpdateStylistMutation,
+} from '../store/apiSlice';
+import { errorText } from '../store/baseQuery';
 
-type Form = Omit<AdminStylist, 'id' | 'photoUrl' | 'bio'> & { bio: string; photoUrl: string };
-
+// Kuaför düzenleme: bilgiler, hizmetler ve değerlendirmeler. Çalışma saatleri ayrı sayfada.
 export default function StylistEditPage() {
   const { t } = useTranslation();
   const { id } = useParams();
-  const [form, setForm] = useState<Form | null>(null);
-  const [newPassword, setNewPassword] = useState('');
-  const [message, setMessage] = useState('');
+  const navigate = useNavigate();
+  const stylistId = Number(id);
+
+  const stylistQ = useOwnerStylistQuery(stylistId);
+  const servicesQ = useStylistServicesQuery(stylistId);
+  const reviewsQ = useStylistReviewsQuery(stylistId);
+  const stylist = stylistQ.data ?? null;
+  const services = servicesQ.data ?? [];
+  const reviews = reviewsQ.data ?? null;
+
+  const [updateStylist] = useUpdateStylistMutation();
+  const [deleteStylist] = useDeleteStylistMutation();
+  const [createService] = useCreateServiceMutation();
+  const [updateService] = useUpdateServiceMutation();
+  const [deleteService] = useDeleteServiceMutation();
+
+  const [form, setForm] = useState({ ad: '', soyad: '', telefon: '', email: '', bio: '', slotDakika: '30', aktif: true, password: '' });
+  const [svc, setSvc] = useState({ ad: '', sureDk: '30', fiyat: '' });
   const [error, setError] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
 
+  // Form, sunucudan gelen kayıtla doldurulur (yalnızca ilk yüklemede ve kayıt değişince).
   useEffect(() => {
-    api<AdminStylist>(`/admin/stylists/${id}`)
-      .then((s) =>
-        setForm({
-          ad: s.ad,
-          soyad: s.soyad,
-          email: s.email,
-          telefon: s.telefon,
-          isActive: s.isActive,
-          bio: s.bio ?? '',
-          photoUrl: s.photoUrl ?? '',
-          slotDakika: s.slotDakika,
-        }),
-      )
-      .catch((err) => setError(err instanceof ApiError ? err.message : t('stylists.notFound')));
-  }, [id, t]);
+    if (!stylist) return;
+    setForm({
+      ad: stylist.ad, soyad: stylist.soyad, telefon: stylist.telefon, email: stylist.email, bio: stylist.bio ?? '',
+      slotDakika: String(stylist.slotDakika), aktif: stylist.aktif, password: '',
+    });
+  }, [stylist]);
 
-  async function onSubmit(e: FormEvent) {
+  const loadError = stylistQ.error ? errorText(stylistQ.error, t('common.error')) : '';
+
+  async function save(e: FormEvent) {
     e.preventDefault();
-    if (!form) return;
     setError('');
     setMessage('');
-    setSaving(true);
     try {
-      await api(`/admin/stylists/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
+      await updateStylist({
+        id: stylistId,
+        body: {
           ad: form.ad,
           soyad: form.soyad,
-          email: form.email,
           telefon: form.telefon,
-          isActive: form.isActive,
+          email: form.email,
           bio: form.bio,
-          ...(form.photoUrl ? { photoUrl: form.photoUrl } : {}),
           slotDakika: Number(form.slotDakika),
-          // Boş bırakılırsa şifre değişmez.
-          ...(newPassword ? { password: newPassword } : {}),
-        }),
-      });
-      setNewPassword('');
-      setMessage(t('stylists.saved'));
+          aktif: form.aktif,
+          ...(form.password ? { password: form.password } : {}),
+        },
+      }).unwrap();
+      setMessage(form.password ? t('stylists.savedWithPassword') : t('stylists.saved'));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t('common.error'));
-    } finally {
-      setSaving(false);
+      setError(errorText(err, t('common.error')));
     }
   }
 
+  async function remove() {
+    if (!window.confirm(t('stylists.confirmRemove'))) return;
+    setError('');
+    try {
+      await deleteStylist(stylistId).unwrap();
+      navigate('/kuaforler');
+    } catch (err) {
+      setError(errorText(err, t('common.error')));
+    }
+  }
+
+  async function addService(e: FormEvent) {
+    e.preventDefault();
+    setError('');
+    try {
+      await createService({ stylistId, body: { ad: svc.ad, sureDk: Number(svc.sureDk), fiyat: Number(svc.fiyat) } }).unwrap();
+      setSvc({ ad: '', sureDk: '30', fiyat: '' });
+    } catch (err) {
+      setError(errorText(err, t('common.error')));
+    }
+  }
+
+  async function toggleService(s: { id: number; aktif: boolean }) {
+    setError('');
+    try {
+      await updateService({ id: s.id, stylistId, body: { aktif: !s.aktif } }).unwrap();
+    } catch (err) {
+      setError(errorText(err, t('common.error')));
+    }
+  }
+
+  async function removeService(s: { id: number }) {
+    if (!window.confirm(t('common.confirmDelete'))) return;
+    setError('');
+    try {
+      await deleteService({ id: s.id, stylistId }).unwrap();
+    } catch (err) {
+      setError(errorText(err, t('common.error')));
+    }
+  }
+
+  if (!stylist && !loadError) return <p className="text-secondary">{t('common.loading')}</p>;
+
   return (
-    <div className="vstack gap-4" style={{ maxWidth: 820 }}>
+    <div className="vstack gap-4" style={{ maxWidth: 960 }}>
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
-        <h1 className="h3 page-title mb-0">{t('stylists.editTitle')}</h1>
-        <Link to="/kuaforler" className="btn btn-outline-secondary">{t('stylists.back')}</Link>
+        <div>
+          <Link to="/kuaforler" className="small">{t('stylists.back')}</Link>
+          <h1 className="h3 page-title mb-0">{stylist ? `${stylist.ad} ${stylist.soyad}` : t('common.error')}</h1>
+        </div>
+        <Link to={`/kuaforler/${stylistId}/calisma`} className="btn btn-outline-primary">
+          <i className="bi bi-clock-history me-1" aria-hidden="true" />{t('stylists.schedule')}
+        </Link>
       </div>
 
-      {!form && !error && <p className="text-secondary">{t('common.loading')}</p>}
-      {error && <div className="alert alert-danger mb-0">{error}</div>}
+      {(error || loadError) && <div className="alert alert-danger mb-0">{error || loadError}</div>}
+      {message && <div className="alert alert-success mb-0">{message}</div>}
 
-      {form && (
-        <form onSubmit={onSubmit} className="card shadow-sm border-0">
+      {stylist && (
+        <form onSubmit={save} className="card shadow-sm border-0">
           <div className="card-body">
-            <div className="row g-3">
-              <div className="col-md-6">
-                <label className="form-label small" htmlFor="ad">{t('stylists.name')}</label>
-                <input id="ad" className="form-control" value={form.ad} onChange={(e) => setForm({ ...form, ad: e.target.value })} required />
-              </div>
-              <div className="col-md-6">
-                <label className="form-label small" htmlFor="soyad">{t('stylists.surname')}</label>
-                <input id="soyad" className="form-control" value={form.soyad} onChange={(e) => setForm({ ...form, soyad: e.target.value })} required />
-              </div>
-              <div className="col-md-6">
-                <label className="form-label small" htmlFor="email">{t('stylists.email')}</label>
-                <input id="email" type="email" className="form-control" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
-              </div>
-              <div className="col-md-6">
-                <label className="form-label small" htmlFor="telefon">{t('stylists.phone')}</label>
-                <input id="telefon" className="form-control" value={form.telefon} onChange={(e) => setForm({ ...form, telefon: e.target.value })} required />
-              </div>
-              <div className="col-md-6">
-                <label className="form-label small" htmlFor="slot">{t('stylists.slot')}</label>
-                <input id="slot" type="number" min={15} max={120} className="form-control" value={form.slotDakika} onChange={(e) => setForm({ ...form, slotDakika: Number(e.target.value) })} />
-              </div>
-              <div className="col-md-6 d-flex align-items-end">
+            <h2 className="h6 fw-semibold mb-3">{t('stylists.info')}</h2>
+            <div className="row g-2">
+              <div className="col-md-3"><label className="form-label small" htmlFor="e-ad">{t('stylists.name')}</label><input id="e-ad" className="form-control" required value={form.ad} onChange={(e) => setForm({ ...form, ad: e.target.value })} /></div>
+              <div className="col-md-3"><label className="form-label small" htmlFor="e-soyad">{t('stylists.surname')}</label><input id="e-soyad" className="form-control" required value={form.soyad} onChange={(e) => setForm({ ...form, soyad: e.target.value })} /></div>
+              <div className="col-md-3"><label className="form-label small" htmlFor="e-tel">{t('stylists.phone')}</label><input id="e-tel" className="form-control" required value={form.telefon} onChange={(e) => setForm({ ...form, telefon: e.target.value })} /></div>
+              <div className="col-md-3"><label className="form-label small" htmlFor="e-mail">{t('stylists.email')}</label><input id="e-mail" type="email" className="form-control" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+              <div className="col-md-8"><label className="form-label small" htmlFor="e-bio">{t('stylists.bio')}</label><input id="e-bio" className="form-control" value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} /></div>
+              <div className="col-md-2"><label className="form-label small" htmlFor="e-slot">{t('stylists.slot')}</label><input id="e-slot" type="number" min={15} max={120} className="form-control" value={form.slotDakika} onChange={(e) => setForm({ ...form, slotDakika: e.target.value })} /></div>
+              <div className="col-md-2 d-flex align-items-end">
                 <div className="form-check form-switch">
-                  <input id="active" className="form-check-input" type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} />
-                  <label className="form-check-label" htmlFor="active">{t('common.active')}</label>
+                  <input id="e-aktif" className="form-check-input" type="checkbox" checked={form.aktif} onChange={(e) => setForm({ ...form, aktif: e.target.checked })} />
+                  <label className="form-check-label" htmlFor="e-aktif">{t('common.active')}</label>
                 </div>
               </div>
-              <div className="col-12">
-                <label className="form-label small" htmlFor="newPassword">{t('stylists.newPassword')}</label>
-                <input id="newPassword" type="password" minLength={8} autoComplete="new-password" className="form-control" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-                <div className="form-text">{t('stylists.passwordHint')}</div>
-              </div>
-              <div className="col-12">
-                <label className="form-label small" htmlFor="bio">{t('stylists.bio')}</label>
-                <textarea id="bio" rows={4} className="form-control" value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} />
-              </div>
-              <div className="col-12 d-flex align-items-center gap-3">
-                <button type="submit" className="btn btn-primary" disabled={saving}>{t('common.save')}</button>
-                {message && <span className="text-success small">{message}</span>}
-              </div>
+              <div className="col-md-6"><label className="form-label small" htmlFor="e-pw">{t('stylists.newTempPassword')}</label><input id="e-pw" className="form-control" minLength={8} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} autoComplete="new-password" /></div>
+              <div className="col-md-6 d-flex align-items-end"><p className="small text-secondary mb-0">{t('stylists.passwordHint')}</p></div>
+            </div>
+            <div className="d-flex justify-content-between mt-3">
+              <button type="button" className="btn btn-outline-danger" onClick={remove}>{t('common.delete')}</button>
+              <button type="submit" className="btn btn-primary">{t('common.save')}</button>
             </div>
           </div>
         </form>
       )}
+
+      <section className="card shadow-sm border-0">
+        <div className="card-body">
+          <h2 className="h6 fw-semibold mb-3">{t('stylists.services')}</h2>
+          <form onSubmit={addService} className="row g-2 align-items-end mb-3">
+            <div className="col-md-5"><label className="form-label small" htmlFor="s-ad">{t('services.name')}</label><input id="s-ad" className="form-control" required value={svc.ad} onChange={(e) => setSvc({ ...svc, ad: e.target.value })} /></div>
+            <div className="col-md-2"><label className="form-label small" htmlFor="s-sure">{t('services.duration')}</label><input id="s-sure" type="number" min={5} max={480} className="form-control" required value={svc.sureDk} onChange={(e) => setSvc({ ...svc, sureDk: e.target.value })} /></div>
+            <div className="col-md-3"><label className="form-label small" htmlFor="s-fiyat">{t('services.price')}</label><input id="s-fiyat" type="number" min={0} step="0.01" className="form-control" required value={svc.fiyat} onChange={(e) => setSvc({ ...svc, fiyat: e.target.value })} /></div>
+            <div className="col-md-2"><button type="submit" className="btn btn-primary w-100">{t('common.add')}</button></div>
+          </form>
+          {services.length === 0 ? (
+            <p className="text-secondary mb-0">{t('common.empty')}</p>
+          ) : (
+            <ul className="list-group list-group-flush">
+              {services.map((s) => (
+                <li key={s.id} className="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2 px-0">
+                  <span>
+                    <span className={s.aktif ? 'fw-semibold' : 'text-secondary text-decoration-line-through'}>{s.ad}</span>
+                    <span className="small text-secondary"> · {s.sureDk} {t('services.minutes')} · {Number(s.fiyat).toLocaleString('tr-TR')} ₺</span>
+                  </span>
+                  <span className="d-flex gap-2">
+                    <button className="btn btn-sm btn-outline-secondary" onClick={() => toggleService(s)}>{s.aktif ? t('common.passivate') : t('common.activate')}</button>
+                    <button className="btn btn-sm btn-outline-danger" onClick={() => removeService(s)}>{t('common.delete')}</button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
+
+      <section className="card shadow-sm border-0">
+        <div className="card-body">
+          <h2 className="h6 fw-semibold mb-2">{t('stylists.reviews')}</h2>
+          {reviews === null ? (
+            <p className="text-secondary mb-0">{t('common.loading')}</p>
+          ) : reviews.adet === 0 ? (
+            <p className="text-secondary mb-0">{t('stylists.noReviews')}</p>
+          ) : (
+            <>
+              <p className="mb-2">
+                <strong>{reviews.ortalama?.toFixed(1)}</strong> / 5 · {reviews.adet} {t('stylists.reviewCount')}
+              </p>
+              <ul className="list-unstyled vstack gap-2 mb-0">
+                {reviews.yorumlar.map((y) => (
+                  <li key={y.id} className="border-bottom pb-2">
+                    <span className="text-warning">{'★'.repeat(y.puan)}</span>
+                    <span className="text-secondary">{'☆'.repeat(5 - y.puan)}</span>
+                    <span className="small text-secondary"> · {y.musteri}</span>
+                    {y.yorum && <div>{y.yorum}</div>}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      </section>
     </div>
   );
 }

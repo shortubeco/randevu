@@ -151,6 +151,25 @@ export function AppointmentsScreen() {
             {showLock ? (
               <Text style={{ color: colors.muted, fontSize: 13, marginTop: 10 }}>{t('appointments.locked')}</Text>
             ) : null}
+            {a.status === 'TAMAMLANDI' && a.puan === null ? (
+              <Button
+                title={t('review.cta')}
+                variant="secondary"
+                onPress={() =>
+                  navigation.navigate('Review', {
+                    appointmentId: a.id,
+                    kuaforAd: `${a.kuaforAd} ${a.kuaforSoyad}`,
+                    hizmet: a.hizmet,
+                  })
+                }
+              />
+            ) : null}
+            {a.puan !== null ? (
+              <Text style={{ color: '#B45309', marginTop: 10, fontSize: 14 }}>
+                {'★'.repeat(a.puan)}
+                {'☆'.repeat(5 - a.puan)}
+              </Text>
+            ) : null}
           </Card>
         );
       }}

@@ -1,4 +1,5 @@
-export type Role = 'ADMIN' | 'KUAFOR' | 'MUSTERI';
+// Veritabanındaki rollerle aynı. Mobil uygulama yalnızca MUSTERI hesaplarını kabul eder.
+export type Role = 'PLATFORM_ADMIN' | 'ISLETME_SAHIBI' | 'KUAFOR' | 'MUSTERI';
 
 export interface User {
   id: number;
@@ -15,6 +16,7 @@ export interface AuthResponse {
   user: User;
 }
 
+// Kuaför: dükkanı ve işletmesiyle birlikte gelir. Puan ortalaması ve değerlendirme sayısı içerir.
 export interface Stylist {
   id: number;
   ad: string;
@@ -22,6 +24,30 @@ export interface Stylist {
   bio: string | null;
   photoUrl: string | null;
   slotDakika: number;
+  dukkanId: number;
+  dukkanAd: string;
+  isletmeId: number;
+  isletmeAd: string;
+  ortalama: number | null;
+  adet: number;
+}
+
+export interface City {
+  id: number;
+  ad: string;
+}
+
+// Şehir/ilçe seçildikten sonra listelenen aktif dükkan.
+export interface Shop {
+  id: number;
+  ad: string;
+  adres: string | null;
+  telefon: string | null;
+  isletmeAd: string;
+  plan: string;
+  planAd: string;
+  siralama: number;
+  kuaforSayisi: number;
 }
 
 export interface StylistService {
@@ -50,6 +76,28 @@ export interface Appointment {
   serviceId: number;
   hizmet: string;
   fiyat: number;
+  puan: number | null; // müşterinin verdiği puan (yoksa null)
+}
+
+export interface Review {
+  id: number;
+  puan: number;
+  yorum: string | null;
+  createdAt: string;
+  musteri: string; // "Ad S." biçiminde
+}
+
+export interface StylistReviews {
+  adet: number;
+  ortalama: number | null;
+  yorumlar: Review[];
+}
+
+export interface AppNotification {
+  id: number;
+  tip: string;
+  icerik: string;
+  createdAt: string;
 }
 
 export interface CreatedAppointment {

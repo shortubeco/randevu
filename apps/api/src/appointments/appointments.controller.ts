@@ -10,7 +10,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { AuthUser, CurrentUser, Roles } from '../auth/decorators';
+import { AuthUser, CurrentUser, Public, Roles } from '../auth/decorators';
 import { Role } from '../auth/roles.enum';
 import { AppointmentsService } from './appointments.service';
 import {
@@ -20,7 +20,7 @@ import {
   UpdateStatusDto,
 } from './appointments.dto';
 
-// Müşteri: kendi randevuları.
+// Müşteri: kendi randevuları. Kuaför ve işletme sahibi: kendi kapsamları.
 @Controller('appointments')
 export class AppointmentsController {
   constructor(private readonly appointments: AppointmentsService) {}
@@ -53,16 +53,20 @@ export class AppointmentsController {
     return this.appointments.reschedule(user.sub, id, dto);
   }
 
-  // Kuaför: kendi randevuları.
   @Get('stylist')
   @Roles(Role.KUAFOR)
   stylistList(@CurrentUser() user: AuthUser, @Query() q: ListAppointmentsQuery) {
-    return this.appointments.listForStylistUser(user.sub, q);
+    return this.appointments.listForStylist(user.sub, q);
   }
 
-  // Kuaför (kendi randevusu) veya ADMIN: durum değişikliği ve silme.
+  @Get('business')
+  @Roles(Role.ISLETME_SAHIBI)
+  businessList(@CurrentUser() user: AuthUser, @Query() q: ListAppointmentsQuery) {
+    return this.appointments.listForOwner(user.sub, q);
+  }
+
   @Patch(':id/status')
-  @Roles(Role.KUAFOR, Role.ADMIN)
+  @Roles(Role.KUAFOR, Role.ISLETME_SAHIBI)
   status(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseIntPipe) id: number,
@@ -72,21 +76,9 @@ export class AppointmentsController {
   }
 
   @Delete(':id')
-  @Roles(Role.KUAFOR, Role.ADMIN)
+  @Roles(Role.KUAFOR, Role.ISLETME_SAHIBI)
   remove(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
     return this.appointments.remove(user, id);
-  }
-}
-
-// ADMIN: tüm randevular, filtreli.
-@Controller('admin/appointments')
-@Roles(Role.ADMIN)
-export class AdminAppointmentsController {
-  constructor(private readonly appointments: AppointmentsService) {}
-
-  @Get()
-  list(@Query() q: ListAppointmentsQuery) {
-    return this.appointments.listForAdmin(q);
   }
 }
 

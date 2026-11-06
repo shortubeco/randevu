@@ -4,7 +4,7 @@ import { Role } from '../auth/roles.enum';
 import { DashboardService } from './dashboard.service';
 
 @Controller('dashboard')
-@Roles(Role.ADMIN, Role.KUAFOR)
+@Roles(Role.ISLETME_SAHIBI, Role.KUAFOR)
 export class DashboardController {
   constructor(private readonly dashboard: DashboardService) {}
 

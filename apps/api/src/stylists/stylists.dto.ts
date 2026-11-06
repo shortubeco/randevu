@@ -4,6 +4,7 @@ import {
   IsBoolean,
   IsEmail,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   IsUrl,
@@ -14,8 +15,15 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
+const PHONE = /^\+?[0-9]{10,15}$/;
+
+// İşletme sahibi, kendi dükkanına kuaför ekler: e-posta ve geçici şifre verir.
 export class CreateStylistDto {
+  @IsInt()
+  shopId!: number;
+
   @IsString()
   @Length(2, 60)
   ad!: string;
@@ -25,7 +33,7 @@ export class CreateStylistDto {
   soyad!: string;
 
   @IsString()
-  @Matches(/^\+?[0-9]{10,15}$/, { message: 'Telefon numarası geçersiz' })
+  @Matches(PHONE, { message: 'Telefon numarası geçersiz' })
   telefon!: string;
 
   @IsEmail()
@@ -48,8 +56,50 @@ export class CreateStylistDto {
   slotDakika?: number;
 }
 
-// Kuaförün kendi profili için.
-export class UpdateStylistProfileDto {
+// İşletme sahibi, kuaförü düzenler. password verilirse geçici şifre olur ve ilk girişte değiştirilir.
+export class UpdateStylistDto {
+  @IsOptional()
+  @IsString()
+  @Length(2, 60)
+  ad?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(2, 60)
+  soyad?: string;
+
+  @IsOptional()
+  @Matches(PHONE, { message: 'Telefon numarası geçersiz' })
+  telefon?: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(8)
+  @MaxLength(72)
+  password?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  bio?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(15)
+  @Max(120)
+  slotDakika?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  aktif?: boolean;
+}
+
+// Kuaförün kendi profili.
+export class UpdateOwnStylistDto {
   @IsOptional()
   @IsString()
   @MaxLength(500)
@@ -66,41 +116,52 @@ export class UpdateStylistProfileDto {
   slotDakika?: number;
 }
 
-// ADMIN, profil alanlarına ek olarak kullanıcı bilgilerini ve hesap durumunu güncelleyebilir.
-export class AdminUpdateStylistDto extends UpdateStylistProfileDto {
+export class ListStylistsQuery {
+  @Type(() => Number)
+  @IsInt()
+  shopId!: number;
+}
+
+export class CreateServiceDto {
+  @IsString()
+  @Length(2, 80)
+  ad!: string;
+
+  @IsInt()
+  @Min(5)
+  @Max(480)
+  sureDk!: number;
+
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  fiyat!: number;
+}
+
+export class UpdateServiceDto {
   @IsOptional()
   @IsString()
-  @Length(2, 60)
+  @Length(2, 80)
   ad?: string;
 
   @IsOptional()
-  @IsString()
-  @Length(2, 60)
-  soyad?: string;
+  @IsInt()
+  @Min(5)
+  @Max(480)
+  sureDk?: number;
 
   @IsOptional()
-  @Matches(/^\+?[0-9]{10,15}$/, { message: 'Telefon numarası geçersiz' })
-  telefon?: string;
-
-  @IsOptional()
-  @IsEmail()
-  email?: string;
-
-  // Verilirse şifre sıfırlanır ve kuaförün tüm oturumları kapanır.
-  @IsOptional()
-  @IsString()
-  @MinLength(8)
-  @MaxLength(72)
-  password?: string;
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  fiyat?: number;
 
   @IsOptional()
   @IsBoolean()
-  isActive?: boolean;
+  aktif?: boolean;
 }
 
-export class AssignStylistServicesDto {
+export class AssignmentIdsDto {
   @IsArray()
   @ArrayMaxSize(50)
   @IsInt({ each: true })
-  serviceIds!: number[];
+  ids!: number[];
 }

@@ -1,7 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, ApiError } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+import {
+  useAppointmentsBusinessQuery,
+  useAppointmentsStylistQuery,
+  useDeleteAppointmentMutation,
+  useSetAppointmentStatusMutation,
+} from '../store/apiSlice';
+import { errorText } from '../store/baseQuery';
 import { dayEndIso, dayStartIso, formatDate, formatTime, todayIstanbul } from '../lib/format';
 import type { Appointment, AppointmentStatus } from '../types';
 
@@ -34,48 +40,42 @@ const ACTIONS: Record<AppointmentStatus, { to: AppointmentStatus; key: string; s
 export default function AppointmentsPage() {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
+  const isOwner = user?.role === 'ISLETME_SAHIBI';
   const [date, setDate] = useState(todayIstanbul());
   const [status, setStatus] = useState<string>('');
-  const [rows, setRows] = useState<Appointment[] | null>(null);
+  const filter = { status: status || undefined, from: dayStartIso(date), to: dayEndIso(date) };
+
+  // Rol'e göre liste: işletme sahibi tüm kuaförler, kuaför kendi randevuları. Önbellekten gelir.
+  const ownerQ = useAppointmentsBusinessQuery(filter, { skip: !isOwner });
+  const stylistQ = useAppointmentsStylistQuery(filter, { skip: isOwner });
+  const listQ = isOwner ? ownerQ : stylistQ;
+  const rows: Appointment[] | null = listQ.data ?? null;
+
+  const [setStatusMutation] = useSetAppointmentStatusMutation();
+  const [deleteAppointment] = useDeleteAppointmentMutation();
   const [error, setError] = useState('');
-
-  const load = useCallback(async () => {
-    setError('');
-    try {
-      const params = new URLSearchParams({ from: dayStartIso(date), to: dayEndIso(date) });
-      if (status) params.set('status', status);
-      const base = user?.role === 'ADMIN' ? '/admin/appointments' : '/appointments/stylist';
-      setRows(await api<Appointment[]>(`${base}?${params.toString()}`));
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : t('common.error'));
-    }
-  }, [date, status, user?.role, t]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const listError = listQ.error ? errorText(listQ.error, t('common.error')) : '';
 
   async function changeStatus(id: number, to: AppointmentStatus) {
+    setError('');
     try {
-      await api(`/appointments/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status: to }) });
-      await load();
+      await setStatusMutation({ id, status: to }).unwrap();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t('common.error'));
+      setError(errorText(err, t('common.error')));
     }
   }
 
   async function remove(id: number) {
     if (!window.confirm(t('common.confirmDelete'))) return;
+    setError('');
     try {
-      await api(`/appointments/${id}`, { method: 'DELETE' });
-      await load();
+      await deleteAppointment(id).unwrap();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t('common.error'));
+      setError(errorText(err, t('common.error')));
     }
   }
 
   const lang = i18n.language;
-  const isAdmin = user?.role === 'ADMIN';
 
   // Masaüstü: birincil işlem satırda görünür, diğerleri ve Sil açılır menüde.
   const actionsDesktop = (a: Appointment) => {
@@ -150,7 +150,7 @@ export default function AppointmentsPage() {
         </div>
       </div>
 
-      {error && <div className="alert alert-danger mb-0">{error}</div>}
+      {(error || listError) && <div className="alert alert-danger mb-0">{error || listError}</div>}
 
       <div className="card shadow-sm border-0">
         <div className="card-body p-0">
@@ -171,7 +171,7 @@ export default function AppointmentsPage() {
                   <div>{a.musteriAd} {a.musteriSoyad}</div>
                   <div className="small text-secondary">
                     {formatDate(a.baslangic, lang)} · {a.hizmet}
-                    {isAdmin && ` · ${a.kuaforAd} ${a.kuaforSoyad}`}
+                    {isOwner && ` · ${a.kuaforAd} ${a.kuaforSoyad}`}
                   </div>
                   <div className="mt-2">{actionsGrid(a)}</div>
                 </div>
@@ -187,7 +187,7 @@ export default function AppointmentsPage() {
                     <th>{t('appointments.customer')}</th>
                     <th className="d-none d-xl-table-cell">{t('appointments.phone')}</th>
                     <th>{t('appointments.service')}</th>
-                    {isAdmin && <th>{t('appointments.stylist')}</th>}
+                    {isOwner && <th>{t('appointments.stylist')}</th>}
                     <th>{t('appointments.status')}</th>
                     <th className="text-end">{t('appointments.actions')}</th>
                   </tr>
@@ -200,7 +200,7 @@ export default function AppointmentsPage() {
                       <td>{a.musteriAd} {a.musteriSoyad}</td>
                       <td className="d-none d-xl-table-cell">{a.musteriTelefon}</td>
                       <td>{a.hizmet}</td>
-                      {isAdmin && <td>{a.kuaforAd} {a.kuaforSoyad}</td>}
+                      {isOwner && <td>{a.kuaforAd} {a.kuaforSoyad}</td>}
                       <td><span className={`badge ${BADGE[a.status]}`}>{t(`status.${a.status}`)}</span></td>
                       <td className="text-end">{actionsDesktop(a)}</td>
                     </tr>

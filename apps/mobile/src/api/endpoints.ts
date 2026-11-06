@@ -1,10 +1,15 @@
 import { api } from './client';
 import type {
   Appointment,
+  AppNotification,
   AuthResponse,
+  City,
   CreatedAppointment,
+  Review,
+  Shop,
   Slot,
   Stylist,
+  StylistReviews,
   StylistService,
   User,
 } from './types';
@@ -34,8 +39,19 @@ export const authApi = {
     }),
 };
 
+// Konum: şehir, ilçe ve ilçedeki aktif dükkanlar. Kayıt öncesi de kullanılabilir (cities/districts herkese açık).
+export const locationsApi = {
+  cities: () => api<City[]>('/locations/cities', { auth: false }),
+  districts: (ilId: number) => api<City[]>(`/locations/cities/${ilId}/districts`, { auth: false }),
+  shops: (ilceId: number, service?: string) => {
+    const q = service ? `?service=${encodeURIComponent(service)}` : '';
+    return api<Shop[]>(`/locations/districts/${ilceId}/shops${q}`);
+  },
+};
+
 export const stylistsApi = {
-  list: () => api<Stylist[]>('/stylists'),
+  // Bir dükkanın görünür (aktif) kuaförleri.
+  byShop: (shopId: number) => api<Stylist[]>(`/stylists?shopId=${shopId}`),
   get: (id: number) => api<Stylist>(`/stylists/${id}`),
   services: (id: number) => api<StylistService[]>(`/stylists/${id}/services`),
   availability: (id: number, date: string, serviceId: number) =>
@@ -56,4 +72,26 @@ export const appointmentsApi = {
     }),
   cancel: (id: number) =>
     api<{ id: number; status: string }>(`/appointments/${id}/cancel`, { method: 'PATCH' }),
+};
+
+export const reviewsApi = {
+  forStylist: (stylistId: number) => api<StylistReviews>(`/stylists/${stylistId}/reviews`),
+  create: (appointmentId: number, puan: number, yorum: string) =>
+    api<Review>(`/appointments/${appointmentId}/review`, {
+      method: 'POST',
+      body: { puan, yorum: yorum.trim() || undefined },
+    }),
+};
+
+export const notificationsApi = {
+  mine: () => api<AppNotification[]>('/notifications/mine'),
+  unreadCount: () => api<{ adet: number }>('/notifications/unread-count'),
+  markAllRead: () => api<{ ok: true }>('/notifications/read-all', { method: 'POST' }),
+};
+
+export const devicesApi = {
+  register: (expoPushToken: string) =>
+    api<{ ok: true }>('/devices', { method: 'POST', body: { expoPushToken } }),
+  unregister: (expoPushToken: string) =>
+    api<{ ok: true }>(`/devices/${encodeURIComponent(expoPushToken)}`, { method: 'DELETE' }),
 };

@@ -6,11 +6,10 @@ import {
 import { AuthUser } from '../auth/decorators';
 import { Role } from '../auth/roles.enum';
 import { DatabaseService } from '../database/database.service';
+import { VISIBLE_STYLIST_FROM, VISIBLE_STYLIST_WHERE } from '../common/ownership';
 import {
   busyIntervals,
-  dayStartMs,
   isValidDate,
-  istanbulDate,
   istanbulTime,
   loadWorkingRows,
   MIN_MS,
@@ -19,6 +18,7 @@ import {
   workingIntervals,
 } from '../scheduling/scheduling';
 import { CreateAppointmentDto, ListAppointmentsQuery, RescheduleDto } from './appointments.dto';
+import { formatIstanbul, NotificationsService } from '../notifications/notifications.service';
 
 // Müşteri iptal ve değişiklik yapabilmesi için randevuya en az bu kadar süre kalmalı.
 const CUSTOMER_CHANGE_WINDOW_MS = 120 * MIN_MS;
@@ -31,21 +31,32 @@ const TRANSITIONS: Record<string, string[]> = {
   GELMEDI: [],
 };
 
+// Müşteriye giden durum bildirimleri. GELMEDI için bildirim gönderilmez.
+const STATUS_NOTICE: Record<string, string> = {
+  ONAYLANDI: 'randevun onaylandı.',
+  IPTAL: 'randevun kuaför tarafından iptal edildi.',
+  TAMAMLANDI: 'randevun tamamlandı. Deneyimini değerlendirebilirsin.',
+};
+
 const APPOINTMENT_SELECT = `
   SELECT a.id, a.baslangic, a.bitis, a.status, a."notu",
          s.id AS "stylistId", ku.ad AS "kuaforAd", ku.soyad AS "kuaforSoyad",
+         d.ad AS "dukkanAd", i.ad AS "isletmeAd",
          sv.id AS "serviceId", sv.ad AS hizmet, sv.fiyat::float8 AS fiyat,
-         cu.ad AS "musteriAd", cu.soyad AS "musteriSoyad", cu.telefon AS "musteriTelefon"
+         cu.ad AS "musteriAd", cu.soyad AS "musteriSoyad", cu.telefon AS "musteriTelefon",
+         (SELECT r.puan FROM "Review" r WHERE r."appointmentId" = a.id) AS puan
   FROM "Appointment" a
   JOIN "Stylist" s ON s.id = a."stylistId"
   JOIN "User" ku ON ku.id = s."userId"
+  JOIN "Dukkan" d ON d.id = s."dukkanId"
+  JOIN "Isletme" i ON i.id = d."isletmeId"
   JOIN "Service" sv ON sv.id = a."serviceId"
   JOIN "User" cu ON cu.id = a."customerId"`;
 
 interface ListFilters {
   customerId?: number;
-  stylistId?: number;
-  stylistUserId?: number;
+  stylistIds?: number[];
+  sahipId?: number;
   status?: string;
   from?: string;
   to?: string;
@@ -53,7 +64,28 @@ interface ListFilters {
 
 @Injectable()
 export class AppointmentsService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly notifications: NotificationsService,
+  ) {}
+
+  // Kuaför ve hizmet müşteriye açık mı: işletme, dükkan ve kuaför aktif; hizmet aktif.
+  // lock=true ise kuaför satırı kilitlenir; eşzamanlı rezervasyonlar sıraya girer.
+  private async bookableOffer(sql: Sql, stylistId: number, serviceId: number, lock: boolean) {
+    const r = await sql(
+      `SELECT s."slotDakika", sv."sureDk"
+       FROM ${VISIBLE_STYLIST_FROM}
+       JOIN "Service" sv ON sv."stylistId" = s.id
+       WHERE s.id = $1 AND ${VISIBLE_STYLIST_WHERE}
+         AND sv.id = $2 AND sv.aktif AND sv."deletedAt" IS NULL
+       ${lock ? 'FOR UPDATE OF s' : ''}`,
+      [stylistId, serviceId],
+    );
+    if (!r.rows[0]) {
+      throw new BadRequestException('Seçilen kuaför veya hizmet randevuya açık değil');
+    }
+    return { slotDakika: r.rows[0].slotDakika as number, sureDk: r.rows[0].sureDk as number };
+  }
 
   // Kuaförün belirli bir gün ve hizmet için boş slotları.
   async availability(stylistId: number, dateStr: string, serviceId: number) {
@@ -62,22 +94,8 @@ export class AppointmentsService {
     }
     const sql: Sql = (t, p) => this.db.query(t, p);
 
-    const st = await sql(
-      `SELECT s."slotDakika" FROM "Stylist" s JOIN "User" u ON u.id = s."userId"
-       WHERE s.id = $1 AND s."deletedAt" IS NULL AND u."isActive" = true AND u."deletedAt" IS NULL`,
-      [stylistId],
-    );
-    if (!st.rows[0]) throw new NotFoundException('Kuaför bulunamadı');
-
-    const svc = await sql(
-      `SELECT sv."sureDk" FROM "StylistService" ss JOIN "Service" sv ON sv.id = ss."serviceId"
-       WHERE ss."stylistId" = $1 AND ss."serviceId" = $2 AND sv.aktif = true AND sv."deletedAt" IS NULL`,
-      [stylistId, serviceId],
-    );
-    if (!svc.rows[0]) throw new BadRequestException('Bu kuaför seçilen hizmeti vermiyor');
-
-    const slotMin: number = st.rows[0].slotDakika;
-    const durationMs = svc.rows[0].sureDk * MIN_MS;
+    const offer = await this.bookableOffer(sql, stylistId, serviceId, false);
+    const durationMs = offer.sureDk * MIN_MS;
 
     const blocks = workingIntervals(await loadWorkingRows(sql, stylistId), dateStr);
     if (blocks.length === 0) return [];
@@ -89,7 +107,7 @@ export class AppointmentsService {
 
     const slots: { startsAt: string; label: string }[] = [];
     for (const b of blocks) {
-      for (let t = b.start; t + durationMs <= b.end; t += slotMin * MIN_MS) {
+      for (let t = b.start; t + durationMs <= b.end; t += offer.slotDakika * MIN_MS) {
         if (t <= now) continue;
         const slot = { start: t, end: t + durationMs };
         if (busy.some((x) => x.start < slot.end && slot.start < x.end)) continue;
@@ -106,25 +124,10 @@ export class AppointmentsService {
 
     return this.db.transaction(async (client) => {
       const sql: Sql = (t, p) => client.query(t, p);
+      const offer = await this.bookableOffer(sql, dto.stylistId, dto.serviceId, true);
+      await validateBooking(sql, dto.stylistId, startMs, offer.sureDk, offer.slotDakika);
 
-      // Kuaför satırını kilitle: aynı kuaför için eşzamanlı istekler sıraya girer.
-      const st = await sql(
-        `SELECT id, "slotDakika" FROM "Stylist" WHERE id = $1 AND "deletedAt" IS NULL FOR UPDATE`,
-        [dto.stylistId],
-      );
-      if (!st.rows[0]) throw new NotFoundException('Kuaför bulunamadı');
-
-      const svc = await sql(
-        `SELECT sv."sureDk" FROM "StylistService" ss JOIN "Service" sv ON sv.id = ss."serviceId"
-         WHERE ss."stylistId" = $1 AND ss."serviceId" = $2 AND sv.aktif = true AND sv."deletedAt" IS NULL`,
-        [dto.stylistId, dto.serviceId],
-      );
-      if (!svc.rows[0]) throw new BadRequestException('Bu kuaför seçilen hizmeti vermiyor');
-
-      const durationMin: number = svc.rows[0].sureDk;
-      await validateBooking(sql, dto.stylistId, startMs, durationMin, st.rows[0].slotDakika);
-
-      const endMs = startMs + durationMin * MIN_MS;
+      const endMs = startMs + offer.sureDk * MIN_MS;
       const r = await sql(
         `INSERT INTO "Appointment" ("customerId", "stylistId", "serviceId", baslangic, bitis, status, "updatedAt")
          VALUES ($1, $2, $3, $4, $5, 'BEKLIYOR', now())
@@ -146,19 +149,10 @@ export class AppointmentsService {
 
     return this.db.transaction(async (client) => {
       const sql: Sql = (t, p) => client.query(t, p);
+      const offer = await this.bookableOffer(sql, current.stylistId, current.serviceId, true);
+      await validateBooking(sql, current.stylistId, startMs, offer.sureDk, offer.slotDakika, id);
 
-      const st = await sql(
-        `SELECT id, "slotDakika" FROM "Stylist" WHERE id = $1 AND "deletedAt" IS NULL FOR UPDATE`,
-        [current.stylistId],
-      );
-      if (!st.rows[0]) throw new NotFoundException('Kuaför bulunamadı');
-
-      const svc = await sql(`SELECT "sureDk" FROM "Service" WHERE id = $1`, [current.serviceId]);
-      const durationMin: number = svc.rows[0].sureDk;
-
-      await validateBooking(sql, current.stylistId, startMs, durationMin, st.rows[0].slotDakika, id);
-
-      const endMs = startMs + durationMin * MIN_MS;
+      const endMs = startMs + offer.sureDk * MIN_MS;
       const r = await sql(
         `UPDATE "Appointment" SET baslangic = $2, bitis = $3, status = 'BEKLIYOR', "updatedAt" = now()
          WHERE id = $1 RETURNING id, baslangic, bitis, status`,
@@ -184,15 +178,18 @@ export class AppointmentsService {
     return this.list({ customerId });
   }
 
-  async listForStylistUser(userId: number, q: ListAppointmentsQuery) {
-    return this.list({ stylistUserId: userId, status: q.status, from: q.from, to: q.to });
+  // Kuaför: yalnızca kendi randevuları.
+  async listForStylist(userId: number, q: ListAppointmentsQuery) {
+    const stylistId = await this.stylistIdOf(userId);
+    return this.list({ stylistIds: [stylistId], status: q.status, from: q.from, to: q.to });
   }
 
-  async listForAdmin(q: ListAppointmentsQuery) {
-    return this.list({ stylistId: q.stylistId, status: q.status, from: q.from, to: q.to });
+  // İşletme sahibi: işletmesindeki tüm kuaförlerin randevuları.
+  async listForOwner(userId: number, q: ListAppointmentsQuery) {
+    return this.list({ sahipId: userId, status: q.status, from: q.from, to: q.to });
   }
 
-  // Kuaför yalnızca kendi randevularının durumunu değiştirebilir; ADMIN hepsini.
+  // Kuaför kendi randevusunun; işletme sahibi kendi işletmesindekilerin durumunu değiştirir.
   async updateStatus(actor: AuthUser, id: number, status: string) {
     const a = await this.findForActor(actor, id);
     if (!TRANSITIONS[a.status].includes(status)) {
@@ -200,12 +197,18 @@ export class AppointmentsService {
     }
     const r = await this.db.query(
       `UPDATE "Appointment" SET
-         status = $2::"AppointmentStatus",
+         status = $2,
          "iptalEdenId" = CASE WHEN $2 = 'IPTAL' THEN $3::int ELSE "iptalEdenId" END,
          "updatedAt" = now()
        WHERE id = $1 RETURNING id, status`,
       [id, status, actor.sub],
     );
+
+    // Müşteriye bildirim (sonuç beklenmez).
+    const text = STATUS_NOTICE[status];
+    if (text) {
+      this.notifications.notify(a.customerId, status, `${formatIstanbul(a.baslangic)} – ${text}`, id);
+    }
     return r.rows[0];
   }
 
@@ -226,6 +229,15 @@ export class AppointmentsService {
     }
   }
 
+  private async stylistIdOf(userId: number): Promise<number> {
+    const r = await this.db.query<{ id: number }>(
+      `SELECT id FROM "Stylist" WHERE "userId" = $1 AND "deletedAt" IS NULL`,
+      [userId],
+    );
+    if (!r.rows[0]) throw new NotFoundException('Kuaför kaydı bulunamadı');
+    return r.rows[0].id;
+  }
+
   private async findOwnActive(customerId: number, id: number) {
     const r = await this.db.query(
       `SELECT id, "stylistId", "serviceId", baslangic, status FROM "Appointment"
@@ -240,19 +252,24 @@ export class AppointmentsService {
     return a;
   }
 
+  // Kuaför yalnızca kendi randevusunu; işletme sahibi işletmesindekini görebilir. Diğerleri 404.
   private async findForActor(actor: AuthUser, id: number) {
     const r = await this.db.query(
-      `SELECT a.id, a.status, s."userId" AS "stylistUserId"
-       FROM "Appointment" a JOIN "Stylist" s ON s.id = a."stylistId"
+      `SELECT a.id, a.status, a."customerId", a.baslangic,
+              s."userId" AS "stylistUserId", i."sahipId"
+       FROM "Appointment" a
+         JOIN "Stylist" s ON s.id = a."stylistId"
+         JOIN "Dukkan" d ON d.id = s."dukkanId"
+         JOIN "Isletme" i ON i.id = d."isletmeId"
        WHERE a.id = $1 AND a."deletedAt" IS NULL`,
       [id],
     );
     const a = r.rows[0];
     if (!a) throw new NotFoundException('Randevu bulunamadı');
-    if (actor.role === Role.KUAFOR && a.stylistUserId !== actor.sub) {
-      // Başkasının randevusu olduğunu belli etmemek için aynı hata.
-      throw new NotFoundException('Randevu bulunamadı');
-    }
+    const yetkisiz =
+      (actor.role === Role.KUAFOR && a.stylistUserId !== actor.sub) ||
+      (actor.role === Role.ISLETME_SAHIBI && a.sahipId !== actor.sub);
+    if (yetkisiz) throw new NotFoundException('Randevu bulunamadı');
     return a;
   }
 
@@ -265,9 +282,9 @@ export class AppointmentsService {
     };
 
     if (f.customerId) add(`a."customerId" = ?`, f.customerId);
-    if (f.stylistId) add(`a."stylistId" = ?`, f.stylistId);
-    if (f.stylistUserId) add(`s."userId" = ?`, f.stylistUserId);
-    if (f.status) add(`a.status = ?::"AppointmentStatus"`, f.status);
+    if (f.stylistIds) add(`a."stylistId" = ANY(?::int[])`, f.stylistIds);
+    if (f.sahipId) add(`i."sahipId" = ?`, f.sahipId);
+    if (f.status) add(`a.status = ?`, f.status);
     if (f.from) add(`a.baslangic >= ?`, new Date(f.from));
     if (f.to) add(`a.baslangic < ?`, new Date(f.to));
 
