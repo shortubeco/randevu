@@ -129,7 +129,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="row g-4">
-        <div className="col-lg-6">
+        <div className="col-md-6">
           <div className="card shadow-sm border-0 h-100">
             <div className="card-body">
               <h2 className="h6 fw-semibold mb-3">{t('dashboard.monthlyCount')}</h2>
@@ -142,7 +142,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-        <div className="col-lg-6">
+        <div className="col-md-6">
           <div className="card shadow-sm border-0 h-100">
             <div className="card-body">
               <h2 className="h6 fw-semibold mb-3">{t('dashboard.monthlyRevenue')}</h2>
@@ -218,7 +218,7 @@ export default function DashboardPage() {
       {isAdmin && data.kuaforler && data.hizmetler && data.sonMusteriler && (
         <>
           <div className="row g-4">
-            <div className="col-lg-6">
+            <div className="col-md-6">
               <div className="card shadow-sm border-0 h-100">
                 <div className="card-body">
                   <div className="d-flex justify-content-between align-items-center mb-2">
@@ -252,7 +252,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="col-lg-6">
+            <div className="col-md-6">
               <div className="card shadow-sm border-0 h-100">
                 <div className="card-body">
                   <div className="d-flex justify-content-between align-items-center mb-2">

@@ -31,7 +31,8 @@
     "reports": "Reports",
     "schedule": "My schedule",
     "profile": "My profile",
-    "logout": "Log out"
+    "logout": "Log out",
+    "menu": "Menu"
   },
   "login": {
     "title": "Sign in",

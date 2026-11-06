@@ -4,11 +4,69 @@ body {
   background-color: #f4f6f9;
 }
 
+/* Kabuk: geniş ekranda kenar çubuğu + içerik yan yana; dar ekranda çekmece. */
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
 /* Kenar çubuğu */
 .app-sidebar {
   width: 250px;
-  min-height: 100vh;
+  flex-shrink: 0;
   background: linear-gradient(180deg, #14213d 0%, #1b2d52 100%);
+  overflow-y: auto;
+}
+
+/* Üst çubuk ve çekmece: yalnızca dar ekranda (Bootstrap lg altı) görünür */
+.app-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  background: #fff;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.app-topbar .app-brand {
+  color: #14213d;
+  font-size: 1.05rem;
+}
+
+.app-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 33, 61, 0.45);
+  z-index: 1035;
+}
+
+@media (min-width: 992px) {
+  .app-sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .app-sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: min(280px, 85vw);
+    z-index: 1040;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    box-shadow: 0 0 24px rgba(0, 0, 0, 0.25);
+  }
+
+  .app-sidebar.is-open {
+    transform: translateX(0);
+  }
 }
 
 .app-sidebar .nav-link {

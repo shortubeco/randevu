@@ -61,9 +61,9 @@ export default function CustomersPage() {
                   <tr>
                     <th>{t('customers.name')}</th>
                     <th>{t('customers.phone')}</th>
-                    <th>{t('customers.email')}</th>
+                    <th className="d-none d-lg-table-cell">{t('customers.email')}</th>
                     <th className="text-center">{t('customers.count')}</th>
-                    <th>{t('customers.registered')}</th>
+                    <th className="d-none d-md-table-cell">{t('customers.registered')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -71,11 +71,11 @@ export default function CustomersPage() {
                     <tr key={c.id}>
                       <td className="fw-semibold">{c.ad} {c.soyad}</td>
                       <td>{c.telefon}</td>
-                      <td className="text-secondary">{c.email}</td>
+                      <td className="text-secondary d-none d-lg-table-cell">{c.email}</td>
                       <td className="text-center">
                         <span className="badge text-bg-light border">{c.randevuSayisi}</span>
                       </td>
-                      <td>{formatDate(c.createdAt, i18n.language)}</td>
+                      <td className="d-none d-md-table-cell">{formatDate(c.createdAt, i18n.language)}</td>
                     </tr>
                   ))}
                 </tbody>

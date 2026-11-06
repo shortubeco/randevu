@@ -37,7 +37,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(await api<User>('/auth/me'));
         }
       } catch {
-        clearSession();
+        // Ağ hatası gibi geçici bir sorunda refresh token silinmez; sunucu oturumu
+        // reddetmişse refreshSession zaten temizler. Kullanıcı yalnızca giriş ekranına döner.
       } finally {
         setLoading(false);
       }

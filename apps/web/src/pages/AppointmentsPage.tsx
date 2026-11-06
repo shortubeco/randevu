@@ -120,7 +120,7 @@ export default function AppointmentsPage() {
                     <th>{t('appointments.time')}</th>
                     <th>{t('appointments.date')}</th>
                     <th>{t('appointments.customer')}</th>
-                    <th>{t('appointments.phone')}</th>
+                    <th className="d-none d-md-table-cell">{t('appointments.phone')}</th>
                     <th>{t('appointments.service')}</th>
                     {isAdmin && <th>{t('appointments.stylist')}</th>}
                     <th>{t('appointments.status')}</th>
@@ -133,7 +133,7 @@ export default function AppointmentsPage() {
                       <td className="fw-semibold">{formatTime(a.baslangic)}</td>
                       <td>{formatDate(a.baslangic, lang)}</td>
                       <td>{a.musteriAd} {a.musteriSoyad}</td>
-                      <td>{a.musteriTelefon}</td>
+                      <td className="d-none d-md-table-cell">{a.musteriTelefon}</td>
                       <td>{a.hizmet}</td>
                       {isAdmin && <td>{a.kuaforAd} {a.kuaforSoyad}</td>}
                       <td><span className={`badge ${BADGE[a.status]}`}>{t(`status.${a.status}`)}</span></td>

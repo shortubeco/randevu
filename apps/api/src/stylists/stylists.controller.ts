@@ -85,6 +85,11 @@ export class AdminStylistsController {
     return this.stylists.remove(id);
   }
 
+  @Get(':id/services')
+  services(@Param('id', ParseIntPipe) id: number) {
+    return this.stylists.adminServicesOf(id);
+  }
+
   @Put(':id/services')
   assignServices(
     @Param('id', ParseIntPipe) id: number,

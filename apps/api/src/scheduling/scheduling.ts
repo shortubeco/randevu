@@ -145,3 +145,26 @@ export async function validateBooking(
     throw new ConflictException('Seçilen saat dolu');
   }
 }
+
+// Kuaförün verilen aralıkta onaylı veya bekleyen randevu sayısı (izin çakışması için).
+export async function countActiveOverlapping(sql: Sql, stylistId: number, from: Date, to: Date): Promise<number> {
+  const r = await sql(
+    `SELECT COUNT(*)::int AS n FROM "Appointment"
+     WHERE "stylistId" = $1 AND "deletedAt" IS NULL
+       AND status IN ('BEKLIYOR', 'ONAYLANDI')
+       AND baslangic < $3 AND bitis > $2`,
+    [stylistId, from, to],
+  );
+  return r.rows[0].n;
+}
+
+// Kuaförün ileri tarihli onaylı veya bekleyen randevu sayısı (pasifleştirme ve silme için).
+export async function countUpcomingActive(sql: Sql, stylistId: number): Promise<number> {
+  const r = await sql(
+    `SELECT COUNT(*)::int AS n FROM "Appointment"
+     WHERE "stylistId" = $1 AND "deletedAt" IS NULL
+       AND status IN ('BEKLIYOR', 'ONAYLANDI') AND baslangic > now()`,
+    [stylistId],
+  );
+  return r.rows[0].n;
+}

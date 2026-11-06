@@ -31,7 +31,8 @@
     "reports": "Raporlar",
     "schedule": "Çalışma saatlerim",
     "profile": "Profilim",
-    "logout": "Çıkış yap"
+    "logout": "Çıkış yap",
+    "menu": "Menü"
   },
   "login": {
     "title": "Giriş yap",

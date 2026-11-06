@@ -21,7 +21,8 @@ export default function StylistsPage() {
         api<Service[]>('/admin/services'),
       ]);
       setStylists(s);
-      setServices(sv.filter((x) => x.aktif));
+      // Pasif hizmetler de listelenir: kuaföre atanmışsa seçili kalır, kayıtta silinmez.
+      setServices(sv);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('common.error'));
     }
@@ -54,19 +55,29 @@ export default function StylistsPage() {
       setOpenId(null);
       return;
     }
-    const current = await api<{ id: number }[]>(`/stylists/${id}/services`);
-    setSelected(current.map((x) => x.id));
-    setOpenId(id);
+    try {
+      const current = await api<{ id: number }[]>(`/admin/stylists/${id}/services`);
+      setSelected(current.map((x) => x.id));
+      setOpenId(id);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t('common.error'));
+    }
   }
 
   async function saveServices(id: number) {
-    await run(() => api(`/admin/stylists/${id}/services`, { method: 'PUT', body: JSON.stringify({ serviceIds: selected }) }));
-    setOpenId(null);
+    try {
+      await api(`/admin/stylists/${id}/services`, { method: 'PUT', body: JSON.stringify({ serviceIds: selected }) });
+      setOpenId(null);
+      await load();
+    } catch (err) {
+      // Hata olursa seçim ekranı açık kalır; kullanıcı düzeltip tekrar kaydedebilir.
+      setError(err instanceof ApiError ? err.message : t('common.error'));
+    }
   }
 
   return (
     <div className="vstack gap-4">
-      <div className="d-flex justify-content-between align-items-center">
+      <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
         <h1 className="h3 page-title mb-0">{t('stylists.title')}</h1>
         <button className="btn btn-primary" onClick={() => setShowForm((v) => !v)}>
           <i className="bi bi-plus-lg me-1" aria-hidden="true" />
@@ -98,7 +109,7 @@ export default function StylistsPage() {
                 <thead className="table-light">
                   <tr>
                     <th>{t('stylists.name')}</th>
-                    <th>{t('stylists.phone')}</th>
+                    <th className="d-none d-md-table-cell">{t('stylists.phone')}</th>
                     <th>{t('common.active')}</th>
                     <th className="text-end">{t('appointments.actions')}</th>
                   </tr>
@@ -110,7 +121,7 @@ export default function StylistsPage() {
                         <div className="fw-semibold">{s.ad} {s.soyad}</div>
                         <div className="small text-secondary">{s.email}</div>
                       </td>
-                      <td>{s.telefon}</td>
+                      <td className="d-none d-md-table-cell">{s.telefon}</td>
                       <td>
                         <span className={`badge ${s.isActive ? 'text-bg-success' : 'text-bg-secondary'}`}>
                           {t(s.isActive ? 'common.active' : 'common.passive')}
@@ -160,6 +171,7 @@ export default function StylistsPage() {
                     />
                     <label className="form-check-label" htmlFor={`sv-${sv.id}`}>
                       {sv.ad} <span className="text-secondary">({sv.sureDk} dk · {sv.fiyat} ₺)</span>
+                      {!sv.aktif && <span className="badge text-bg-secondary ms-2">{t('common.passive')}</span>}
                     </label>
                   </div>
                 </div>

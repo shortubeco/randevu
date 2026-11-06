@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth, type Role } from '../auth/AuthContext';
@@ -24,6 +25,8 @@ const NAV: NavItem[] = [
 export default function Layout() {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
+  // Dar ekranda (tablet ve mobil) kenar çubuğu çekmece olarak açılır/kapanır.
+  const [menuOpen, setMenuOpen] = useState(false);
 
   function switchLang() {
     const next = i18n.language === 'tr' ? 'en' : 'tr';
@@ -32,15 +35,43 @@ export default function Layout() {
   }
 
   return (
-    <div className="d-flex">
-      <aside className="app-sidebar d-flex flex-column p-3 position-sticky top-0 align-self-start" style={{ height: '100vh' }}>
-        <div className="app-brand fs-5 px-2 py-3 mb-2">
+    <div className="app-shell">
+      <header className="app-topbar d-lg-none">
+        <div className="app-brand">
+          <i className="bi bi-scissors me-2" aria-hidden="true" />
+          {t('app.title')}
+        </div>
+        <button
+          type="button"
+          className="btn btn-outline-secondary"
+          aria-label={t('nav.menu')}
+          aria-expanded={menuOpen}
+          aria-controls="app-sidebar"
+          onClick={() => setMenuOpen((o) => !o)}
+        >
+          <i className={`bi ${menuOpen ? 'bi-x-lg' : 'bi-list'} fs-5`} aria-hidden="true" />
+        </button>
+      </header>
+
+      {menuOpen && <div className="app-backdrop d-lg-none" onClick={() => setMenuOpen(false)} aria-hidden="true" />}
+
+      <aside
+        id="app-sidebar"
+        className={`app-sidebar d-flex flex-column p-3 ${menuOpen ? 'is-open' : ''}`}
+      >
+        <div className="app-brand d-none d-lg-block fs-5 px-2 py-3 mb-2">
           <i className="bi bi-scissors me-2" aria-hidden="true" />
           {t('app.title')}
         </div>
         <nav className="nav flex-column gap-1">
           {NAV.filter((n) => user && n.roles.includes(user.role)).map((n) => (
-            <NavLink key={n.to} to={n.to} end={n.to === '/'} className="nav-link">
+            <NavLink
+              key={n.to}
+              to={n.to}
+              end={n.to === '/'}
+              className="nav-link"
+              onClick={() => setMenuOpen(false)}
+            >
               <i className={`bi ${n.icon} me-2`} aria-hidden="true" />
               {t(n.labelKey)}
             </NavLink>
@@ -61,7 +92,8 @@ export default function Layout() {
           </div>
         </div>
       </aside>
-      <main className="app-content p-4">
+
+      <main className="app-content p-3 p-md-4">
         <Outlet />
       </main>
     </div>

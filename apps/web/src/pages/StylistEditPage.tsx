@@ -65,7 +65,7 @@ export default function StylistEditPage() {
 
   return (
     <div className="vstack gap-4" style={{ maxWidth: 820 }}>
-      <div className="d-flex justify-content-between align-items-center">
+      <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
         <h1 className="h3 page-title mb-0">{t('stylists.editTitle')}</h1>
         <Link to="/kuaforler" className="btn btn-outline-secondary">{t('stylists.back')}</Link>
       </div>

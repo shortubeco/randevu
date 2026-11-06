@@ -1,6 +1,11 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
-import { hhmmToMinutes, WorkingRow } from '../scheduling/scheduling';
+import { countActiveOverlapping, hhmmToMinutes, Sql, WorkingRow } from '../scheduling/scheduling';
 import { ReplaceWorkingHoursDto, TimeOffDto, WorkingDayDto } from './schedule.dto';
 
 function validateDay(d: WorkingDayDto) {
@@ -87,13 +92,31 @@ export class ScheduleService {
     if (Number.isNaN(start) || Number.isNaN(end) || end <= start) {
       throw new BadRequestException('İzin bitişi başlangıçtan sonra olmalı');
     }
-    await this.assertStylist(stylistId);
-    const r = await this.db.query(
-      `INSERT INTO "TimeOff" ("stylistId", baslangic, bitis, sebep)
-       VALUES ($1, $2, $3, $4) RETURNING id, baslangic, bitis, sebep`,
-      [stylistId, new Date(start), new Date(end), dto.sebep ?? null],
-    );
-    return r.rows[0];
+    return this.db.transaction(async (client) => {
+      const sql: Sql = (t, p) => client.query(t, p);
+
+      // Kuaför satırını kilitle: randevu oluşturma ile aynı kilidi kullanır, yarış durumunu önler.
+      const st = await sql(
+        `SELECT id FROM "Stylist" WHERE id = $1 AND "deletedAt" IS NULL FOR UPDATE`,
+        [stylistId],
+      );
+      if (!st.rows[0]) throw new NotFoundException('Kuaför bulunamadı');
+
+      // Onaylı veya bekleyen randevusu olan bir aralığa izin girilmez.
+      const clash = await countActiveOverlapping(sql, stylistId, new Date(start), new Date(end));
+      if (clash > 0) {
+        throw new ConflictException(
+          `Bu aralıkta ${clash} onaylı veya bekleyen randevu var. Önce bu randevuları iptal edin veya taşıyın.`,
+        );
+      }
+
+      const r = await sql(
+        `INSERT INTO "TimeOff" ("stylistId", baslangic, bitis, sebep)
+         VALUES ($1, $2, $3, $4) RETURNING id, baslangic, bitis, sebep`,
+        [stylistId, new Date(start), new Date(end), dto.sebep ?? null],
+      );
+      return r.rows[0];
+    });
   }
 
   async removeTimeOff(stylistId: number, id: number) {

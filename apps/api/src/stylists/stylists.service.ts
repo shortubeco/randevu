@@ -7,6 +7,7 @@ import {
 import * as bcrypt from 'bcryptjs';
 import { DatabaseService } from '../database/database.service';
 import { FOREIGN_KEY_VIOLATION, UNIQUE_VIOLATION, pgCode } from '../common/pg-errors';
+import { countUpcomingActive, Sql } from '../scheduling/scheduling';
 import {
   AdminUpdateStylistDto,
   AssignStylistServicesDto,
@@ -160,6 +161,10 @@ export class StylistsService {
         );
       }
 
+      if (dto.isActive === false) {
+        await this.assertNoUpcoming(id, (t, p) => client.query(t, p));
+      }
+
       if (dto.isActive !== undefined) {
         await client.query(
           `UPDATE "User" SET "isActive" = $2, "updatedAt" = now() WHERE id = $1`,
@@ -193,6 +198,14 @@ export class StylistsService {
   // Soft delete: kuaför kaydı ve hesabı işaretlenir, oturumları kapanır.
   async remove(id: number) {
     return this.db.transaction(async (client) => {
+      const sql: Sql = (t, p) => client.query(t, p);
+      const exists = await sql(
+        `SELECT id FROM "Stylist" WHERE id = $1 AND "deletedAt" IS NULL FOR UPDATE`,
+        [id],
+      );
+      if (!exists.rows[0]) throw new NotFoundException('Kuaför bulunamadı');
+      await this.assertNoUpcoming(id, sql);
+
       const r = await client.query<{ userId: number }>(
         `UPDATE "Stylist" SET "deletedAt" = now()
          WHERE id = $1 AND "deletedAt" IS NULL RETURNING "userId"`,
@@ -239,6 +252,28 @@ export class StylistsService {
       }
       return { ok: true, serviceIds };
     });
+  }
+
+  // ADMIN atama ekranı: kuaförün atanmış tüm hizmetleri (pasifler dahil, silinmişler hariç).
+  async adminServicesOf(stylistId: number) {
+    const r = await this.db.query(
+      `SELECT sv.id, sv.ad, sv."sureDk", sv.fiyat::float8 AS fiyat, sv.aktif
+       FROM "StylistService" ss JOIN "Service" sv ON sv.id = ss."serviceId"
+       WHERE ss."stylistId" = $1 AND sv."deletedAt" IS NULL
+       ORDER BY sv.ad`,
+      [stylistId],
+    );
+    return r.rows;
+  }
+
+  // Onaylı veya bekleyen ileri tarihli randevusu olan kuaför pasifleştirilemez veya silinemez.
+  private async assertNoUpcoming(stylistId: number, sql: Sql) {
+    const n = await countUpcomingActive(sql, stylistId);
+    if (n > 0) {
+      throw new ConflictException(
+        `Kuaförün ${n} onaylı veya bekleyen ileri tarihli randevusu var. Önce bu randevuları iptal edin veya taşıyın.`,
+      );
+    }
   }
 
   async servicesOf(stylistId: number) {

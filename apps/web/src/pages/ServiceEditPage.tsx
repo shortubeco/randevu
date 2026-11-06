@@ -39,7 +39,7 @@ export default function ServiceEditPage() {
 
   return (
     <div className="vstack gap-4" style={{ maxWidth: 720 }}>
-      <div className="d-flex justify-content-between align-items-center">
+      <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
         <h1 className="h3 page-title mb-0">{t('services.editTitle')}</h1>
         <Link to="/hizmetler" className="btn btn-outline-secondary">{t('services.back')}</Link>
       </div>

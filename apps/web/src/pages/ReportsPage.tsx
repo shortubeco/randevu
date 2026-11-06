@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, ApiError } from '../api/client';
 import { dayEndIso, dayStartIso, todayIstanbul } from '../lib/format';
@@ -30,6 +30,14 @@ export default function ReportsPage() {
   const [error, setError] = useState('');
 
   const money = new Intl.NumberFormat(i18n.language === 'en' ? 'en-GB' : 'tr-TR', { style: 'currency', currency: 'TRY' });
+
+  // Sayfa açılınca bu ayın raporu gösterilir; tarih aralığı değiştirilip yeniden getirilebilir.
+  useEffect(() => {
+    const params = new URLSearchParams({ from: dayStartIso(monthStart()), to: dayEndIso(todayIstanbul()) });
+    api<ReportData>(`/admin/reports?${params.toString()}`)
+      .then(setData)
+      .catch((err) => setError(err instanceof ApiError ? err.message : t('common.error')));
+  }, [t]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
