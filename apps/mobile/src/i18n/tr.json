@@ -1,0 +1,101 @@
+{
+  "common": {
+    "save": "Kaydet",
+    "cancel": "Vazgeç",
+    "loading": "Yükleniyor...",
+    "retry": "Tekrar dene",
+    "ok": "Tamam",
+    "error": "Hata",
+    "genericError": "Bir hata oluştu. Lütfen tekrar dene.",
+    "empty": "Kayıt yok"
+  },
+  "auth": {
+    "login": "Giriş yap",
+    "register": "Kayıt ol",
+    "email": "E-posta",
+    "password": "Şifre",
+    "passwordAgain": "Şifre (tekrar)",
+    "ad": "Ad",
+    "soyad": "Soyad",
+    "telefon": "Telefon",
+    "noAccount": "Hesabın yok mu? Kayıt ol",
+    "haveAccount": "Zaten hesabın var mı? Giriş yap",
+    "fillAll": "Lütfen tüm alanları doldur",
+    "passwordShort": "Şifre en az 8 karakter olmalı",
+    "passwordMismatch": "Şifreler eşleşmiyor",
+    "phoneInvalid": "Telefon numarası geçersiz",
+    "invalidCredentials": "E-posta veya şifre hatalı"
+  },
+  "tabs": {
+    "stylists": "Kuaförler",
+    "appointments": "Randevularım",
+    "profile": "Profil"
+  },
+  "stylists": {
+    "title": "Kuaförler",
+    "empty": "Şu an listelenen kuaför yok",
+    "slotInfo": "{{minutes}} dk aralıklarla randevu",
+    "services": "Hizmetler",
+    "noServices": "Bu kuaför için hizmet tanımlı değil",
+    "minutes": "{{count}} dk"
+  },
+  "booking": {
+    "title": "Randevu al",
+    "titleReschedule": "Randevuyu değiştir",
+    "date": "Tarih",
+    "time": "Saat",
+    "noSlots": "Bu gün için boş saat yok. Başka bir gün seç.",
+    "pickSlot": "Lütfen bir saat seç",
+    "summary": "Özet",
+    "stylist": "Kuaför",
+    "service": "Hizmet",
+    "duration": "Süre",
+    "price": "Fiyat",
+    "confirm": "Randevuyu onayla",
+    "update": "Yeni saate taşı",
+    "createdTitle": "Randevu talebin alındı",
+    "createdMessage": "Kuaför onayladığında durumu güncellenecek.",
+    "rescheduledTitle": "Randevun taşındı",
+    "rescheduledMessage": "Yeni saat için kuaförün tekrar onayı gerekecek.",
+    "loadError": "Boş saatler alınamadı"
+  },
+  "appointments": {
+    "title": "Randevularım",
+    "upcoming": "Yaklaşan",
+    "past": "Geçmiş",
+    "empty": "Henüz randevun yok. Bir kuaför seçerek başlayabilirsin.",
+    "cancel": "İptal et",
+    "change": "Değiştir",
+    "cancelConfirm": "Bu randevuyu iptal etmek istiyor musun?",
+    "cancelled": "Randevun iptal edildi",
+    "locked": "Randevuya 2 saatten az kaldığı için iptal veya değişiklik yapılamaz"
+  },
+  "status": {
+    "BEKLIYOR": "Onay bekliyor",
+    "ONAYLANDI": "Onaylandı",
+    "IPTAL": "İptal edildi",
+    "TAMAMLANDI": "Tamamlandı",
+    "GELMEDI": "Gelmedi"
+  },
+  "profile": {
+    "title": "Profil",
+    "info": "Kişisel bilgiler",
+    "saved": "Bilgilerin güncellendi",
+    "changePassword": "Şifre değiştir",
+    "currentPassword": "Mevcut şifre",
+    "newPassword": "Yeni şifre",
+    "passwordChanged": "Şifren değiştirildi. Diğer cihazlardaki oturumlar kapandı, lütfen tekrar giriş yap.",
+    "language": "Dil",
+    "logout": "Çıkış yap",
+    "logoutConfirm": "Çıkış yapmak istiyor musun?"
+  },
+  "days": {
+    "0": "Paz",
+    "1": "Pzt",
+    "2": "Sal",
+    "3": "Çar",
+    "4": "Per",
+    "5": "Cum",
+    "6": "Cmt"
+  }
+}

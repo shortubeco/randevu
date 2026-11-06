@@ -5,12 +5,12 @@
 
 ## Durum (son güncelleme: 2026-11-06)
 - Tek salon için API, web paneli ve veritabanı çalışır durumda ve canlıya alınmış.
-- Mobil uygulama (`apps/mobile`) henüz başlanmadı. Müşterinin asıl ürünü.
+- Mobil uygulama (`apps/mobile`, Expo SDK 58) ilk sürümüyle yazıldı: giriş/kayıt, kuaför listesi, randevu alma, randevularım (iptal/değiştirme), profil. Müşterinin asıl ürünü. TypeScript, lint ve Android bundle kontrolleri geçiyor; cihazda (Expo Go) henüz test edilmedi.
 - Backend testlerinin bir kısmı kullanıcı tarafından şimdilik durduruldu (bkz. "Test durumu").
 
 ## Alınan Kararlar
 - **Stack:** TypeScript her yerde.
-  - Mobil: React Native (Expo), henüz yok
+  - Mobil: React Native (Expo SDK 58), React Navigation v7, i18next, expo-secure-store, @expo/vector-icons. Node 22.13+ gerekli.
   - Web panel: React + Vite + TypeScript, **Bootstrap 5** (`bootstrap`, `bootstrap-icons`), react-router-dom v6, react-i18next (TR varsayılan, EN). Tailwind ve MUI kullanılmıyor.
   - Backend: NestJS + PostgreSQL. **ORM yok**, `pg` Pool ile ham SQL. Prisma denendi ve kaldırıldı: paylaşımlı hosting'de `prisma generate` bellek sınırında çöküyor.
 - **Saat modeli:** Kuaföre özel çalışma saatleri, mola ve izin günleri. Slot aralığı kuaförün `slotDakika` değeri. Çift rezervasyon engellenir.
@@ -82,8 +82,10 @@ Varsayılan olarak tüm uç noktalar giriş ister. Herkese açıklar `@Public()`
 - **Değerlendirme:** planlandı, önerilen yol `POST /appointments/:id/review` (henüz karar verilmedi)
 - **Cihaz tokenı:** planlandı, önerilen yol `POST /devices` (Expo Push için, henüz karar verilmedi)
 
-## Mobil Uygulama (Expo) Ekranları (planlandı, başlanmadı)
-Giriş/Kayıt → Kuaför listesi → Hizmet seç → Gün/saat seç (boş slotlar) → Ad/soyad/telefon (profilden otomatik dolu) → Onay özeti → Randevularım (yaklaşan/geçmiş, iptal/değiştir) → Profil → Bildirimler → Değerlendirme
+## Mobil Uygulama (Expo) Ekranları
+- **Yazıldı (cihazda test bekliyor):** Giriş/Kayıt → Kuaför listesi → Kuaför detayı ve hizmet seçimi → Randevu al (gün seçimi, boş saatler, özet, onay) → Randevularım (yaklaşan/geçmiş, iptal, değiştirme) → Profil (bilgi güncelleme, şifre değiştirme, dil, çıkış)
+- **Plandan sapma:** Randevu akışında ayrı bir ad/soyad/telefon adımı yok. Bu bilgiler hesaptan gelir ve profilde düzenlenir.
+- **Yapılmadı:** Değerlendirme ekranı (API endpoint'i de yok), bildirimler ekranı, şifre sıfırlama.
 
 ## Web Panel Sayfaları (uygulandı)
 - **Ortak:** Giriş, Dashboard (`/`), Randevular (`/randevular`: tarih ve durum filtresi, onayla/iptal/tamamla/gelmedi/sil), Profilim (`/profil`: kişisel bilgiler, şifre değiştirme)
@@ -104,11 +106,11 @@ Giriş/Kayıt → Kuaför listesi → Hizmet seç → Gün/saat seç (boş slotl
 
 ## Aşamalar
 
-1. **[x] Kurulum:** monorepo (`apps/api`, `apps/web`), veritabanı şeması, cPanel dağıtımı. `apps/mobile` ve `packages/shared` henüz yok. CI ve lint eklenmedi (API'de lint ve test script'i yok).
+1. **[x] Kurulum:** monorepo (`apps/api`, `apps/web`, `apps/mobile`), veritabanı şeması, cPanel dağıtımı. `packages/shared` yok. CI yok; API'de lint ve test script'i yok, mobilde lint var.
 2. **[x] Backend çekirdeği:** auth, roller, kuaför ve hizmet CRUD. Refresh token rotasyonu uygulandı.
 3. **[x] Müsaitlik + randevu:** oluşturma, çakışma kontrolü, durum akışı. Müşteri iptal/değişiklik ve 2 saat kuralı kodda var, test edilmedi.
 4. **[x] Web panel:** admin ve kuaför akışları, dashboard, düzenleme sayfaları, profil. Canlı: `panel.sozcutvcanli.com`. Dashboard ve düzenleme akışlarının sunucuda testi yapılmadı.
-5. **[ ] Mobil uygulama:** müşteri akışı (`apps/mobile`, Expo). Başlanmadı. API uç noktaları hazır.
+5. **[~] Mobil uygulama:** müşteri akışı (`apps/mobile`, Expo). İlk sürüm yazıldı (ekranlar bölümüne bakın). Cihazda uçtan uca test ve düzeltmeler bekliyor. Değerlendirme ve bildirimler bu aşamaya dahil değil.
 6. **[ ] Bildirimler ve değerlendirme:** Expo Push, zamanlanmış hatırlatma job'ı, `POST /devices`, değerlendirme endpoint'i ve `Review` kullanımı. Başlanmadı.
 7. **[~] Test, güvenlik, deploy:**
    - Deploy: API ve web, Namecheap paylaşımlı hosting (cPanel Node.js App ve statik dosya). Yapıldı.
@@ -117,14 +119,15 @@ Giriş/Kayıt → Kuaför listesi → Hizmet seç → Gün/saat seç (boş slotl
 ## Test durumu
 - Sunucuda doğrulandı: müsaitlik, randevu alma, kuaförün onaylaması, çakışma (409), mola ve çalışma saati dışı istek (400).
 - Test edilmedi: müşteri iptal/değişiklik, 2 saat kuralı, admin randevu listesi, panelin dashboard ve düzenleme akışları. Bu testler kullanıcı tarafından sunucuda yapılacak.
+- Mobil: TypeScript, lint ve Android bundle derlemesi geçiyor. Cihazda (Expo Go) çalıştırılıp bir müşteri akışı (kayıt → randevu al → randevularım → iptal/değiştir) denenmedi.
 - Yük testi (eşzamanlı aynı slot isteği) yapılmadı.
 
 ## Yapılacaklar (öncelik sırasıyla)
 1. Müşteri iptal/değişiklik ve 2 saat kuralının sunucuda testi
 2. `register` ve `login` için rate limit
 3. Şifre sıfırlama (e-posta) kararı ve uygulaması
-4. Mobil uygulama (`apps/mobile`, Expo)
-5. Push bildirim, hatırlatma job'ı, değerlendirme endpoint'i
+4. Mobil uygulamanın cihazda test edilmesi ve bulunan hataların giderilmesi
+5. Push bildirim, hatırlatma job'ı, değerlendirme endpoint'i ve mobil değerlendirme ekranı
 6. `npm install` güvenlik uyarılarının incelenmesi
 7. KVKK: aydınlatma metni, hesap silme. Admin denetim kaydı.
 
@@ -141,6 +144,6 @@ Giriş/Kayıt → Kuaför listesi → Hizmet seç → Gün/saat seç (boş slotl
 - **Şube:** Tek salon. Şube modeli yok.
 - **Onay:** Kuaför onaylar. Randevu BEKLIYOR durumuna düşer; kuaför veya admin onaylar ya da reddeder.
 - **Ödeme:** Yalnızca bilgi. Fiyat gösterilir, ödeme uygulama dışında alınır. Ödeme entegrasyonu yok.
-- **Dil:** Türkçe + İngilizce. Çeviri dosyaları (`tr.json`, `en.json`) ve dil seçimi uygulandı (web). Mobil için henüz yapılmadı.
+- **Dil:** Türkçe + İngilizce. Çeviri dosyaları (`tr.json`, `en.json`) ve dil seçimi web panelde (`localStorage`) ve mobilde (SecureStore) uygulandı.
 - **Hosting:** Namecheap paylaşımlı hosting, cPanel. Railway/Render/VPS seçeneği kullanılmıyor.
 - **Veritabanı:** PostgreSQL 10.23 (cPanel). Migration'lar elle uygulanır, migration aracı yok.

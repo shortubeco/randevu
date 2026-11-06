@@ -1,0 +1,101 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "loading": "Loading...",
+    "retry": "Try again",
+    "ok": "OK",
+    "error": "Error",
+    "genericError": "Something went wrong. Please try again.",
+    "empty": "Nothing here yet"
+  },
+  "auth": {
+    "login": "Log in",
+    "register": "Sign up",
+    "email": "Email",
+    "password": "Password",
+    "passwordAgain": "Password (again)",
+    "ad": "First name",
+    "soyad": "Last name",
+    "telefon": "Phone",
+    "noAccount": "No account yet? Sign up",
+    "haveAccount": "Already have an account? Log in",
+    "fillAll": "Please fill in all fields",
+    "passwordShort": "Password must be at least 8 characters",
+    "passwordMismatch": "Passwords do not match",
+    "phoneInvalid": "Invalid phone number",
+    "invalidCredentials": "Email or password is incorrect"
+  },
+  "tabs": {
+    "stylists": "Stylists",
+    "appointments": "My appointments",
+    "profile": "Profile"
+  },
+  "stylists": {
+    "title": "Stylists",
+    "empty": "No stylists are listed right now",
+    "slotInfo": "Appointments every {{minutes}} min",
+    "services": "Services",
+    "noServices": "This stylist has no services yet",
+    "minutes": "{{count}} min"
+  },
+  "booking": {
+    "title": "Book appointment",
+    "titleReschedule": "Reschedule",
+    "date": "Date",
+    "time": "Time",
+    "noSlots": "No free times on this day. Try another day.",
+    "pickSlot": "Please pick a time",
+    "summary": "Summary",
+    "stylist": "Stylist",
+    "service": "Service",
+    "duration": "Duration",
+    "price": "Price",
+    "confirm": "Confirm appointment",
+    "update": "Move to new time",
+    "createdTitle": "Request received",
+    "createdMessage": "Your status will update once the stylist confirms.",
+    "rescheduledTitle": "Appointment moved",
+    "rescheduledMessage": "The stylist needs to confirm the new time.",
+    "loadError": "Could not load free times"
+  },
+  "appointments": {
+    "title": "My appointments",
+    "upcoming": "Upcoming",
+    "past": "Past",
+    "empty": "You have no appointments yet. Pick a stylist to start.",
+    "cancel": "Cancel",
+    "change": "Reschedule",
+    "cancelConfirm": "Do you want to cancel this appointment?",
+    "cancelled": "Your appointment was cancelled",
+    "locked": "Appointments cannot be changed or cancelled less than 2 hours before the start"
+  },
+  "status": {
+    "BEKLIYOR": "Pending",
+    "ONAYLANDI": "Confirmed",
+    "IPTAL": "Cancelled",
+    "TAMAMLANDI": "Completed",
+    "GELMEDI": "No-show"
+  },
+  "profile": {
+    "title": "Profile",
+    "info": "Personal details",
+    "saved": "Your details were updated",
+    "changePassword": "Change password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "passwordChanged": "Your password was changed. Sessions on other devices were closed; please log in again.",
+    "language": "Language",
+    "logout": "Log out",
+    "logoutConfirm": "Do you want to log out?"
+  },
+  "days": {
+    "0": "Sun",
+    "1": "Mon",
+    "2": "Tue",
+    "3": "Wed",
+    "4": "Thu",
+    "5": "Fri",
+    "6": "Sat"
+  }
+}
