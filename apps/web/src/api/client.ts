@@ -49,8 +49,21 @@ async function parseError(res: Response): Promise<ApiError> {
   return new ApiError(res.status, message);
 }
 
+// Yenileme isteği devam ederken gelen çağrılar aynı isteği paylaşır. Refresh token her
+// yenilemede döndüğü için aynı token'ın iki kez gönderilmesi sunucuda oturumların iptaline yol açar.
+let refreshing: Promise<boolean> | null = null;
+
 // Refresh token ile yeni oturum alır. Başarısızsa oturumu temizler.
-export async function refreshSession(): Promise<boolean> {
+export function refreshSession(): Promise<boolean> {
+  if (!refreshing) {
+    refreshing = doRefresh().finally(() => {
+      refreshing = null;
+    });
+  }
+  return refreshing;
+}
+
+async function doRefresh(): Promise<boolean> {
   const rt = getRefreshToken();
   if (!rt) return false;
   const res = await fetch(`${BASE}/auth/refresh`, {
@@ -60,11 +73,19 @@ export async function refreshSession(): Promise<boolean> {
   });
   if (!res.ok) {
     clearSession();
+    sessionExpiredHandler?.();
     return false;
   }
   const data = await res.json();
   setSession(data.accessToken, data.refreshToken);
   return true;
+}
+
+// Oturum sunucu tarafında geçersiz kılındığında (yenileme reddedildi) çağrılır; AuthContext kullanıcıyı çıkarır.
+let sessionExpiredHandler: (() => void) | null = null;
+
+export function setSessionExpiredHandler(fn: (() => void) | null) {
+  sessionExpiredHandler = fn;
 }
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {

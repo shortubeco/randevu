@@ -1,5 +1,12 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { api, clearSession, getRefreshToken, refreshSession, setSession } from '../api/client';
+import {
+  api,
+  clearSession,
+  getRefreshToken,
+  refreshSession,
+  setSession,
+  setSessionExpiredHandler,
+} from '../api/client';
 
 export type Role = 'ADMIN' | 'KUAFOR' | 'MUSTERI';
 
@@ -28,6 +35,12 @@ const AuthContext = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Oturum sunucuda geçersiz kılınırsa kullanıcı çıkarılır ve giriş ekranına yönlendirilir.
+  useEffect(() => {
+    setSessionExpiredHandler(() => setUser(null));
+    return () => setSessionExpiredHandler(null);
+  }, []);
 
   // Sayfa yenilendiğinde kayıtlı refresh token ile oturumu geri yükle.
   useEffect(() => {

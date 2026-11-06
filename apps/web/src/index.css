@@ -4,10 +4,17 @@ body {
   background-color: #f4f6f9;
 }
 
-/* Kabuk: geniş ekranda kenar çubuğu + içerik yan yana; dar ekranda çekmece. */
+/* Kabuk: dar ekranda üst çubuk ve içerik alt alta (dikey); geniş ekranda kenar çubuğu + içerik yan yana. */
 .app-shell {
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
+}
+
+@media (min-width: 992px) {
+  .app-shell {
+    flex-direction: row;
+  }
 }
 
 /* Kenar çubuğu */

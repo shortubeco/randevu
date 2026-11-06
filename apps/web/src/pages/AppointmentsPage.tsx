@@ -77,6 +77,20 @@ export default function AppointmentsPage() {
   const lang = i18n.language;
   const isAdmin = user?.role === 'ADMIN';
 
+  // Tablo ve telefon kartları aynı işlem düğmelerini kullanır.
+  const actionButtons = (a: Appointment, end: boolean) => (
+    <div className={`d-flex flex-wrap gap-1 ${end ? 'justify-content-end' : ''}`}>
+      {ACTIONS[a.status].map((act) => (
+        <button key={act.to} className={`btn btn-sm ${act.style}`} onClick={() => changeStatus(a.id, act.to)}>
+          {t(act.key)}
+        </button>
+      ))}
+      <button className="btn btn-sm btn-outline-secondary" onClick={() => remove(a.id)}>
+        {t('common.delete')}
+      </button>
+    </div>
+  );
+
   return (
     <div className="vstack gap-4">
       <div>
@@ -113,12 +127,31 @@ export default function AppointmentsPage() {
           ) : rows.length === 0 ? (
             <p className="p-4 text-secondary mb-0">{t('common.empty')}</p>
           ) : (
-            <div className="table-responsive">
+            <>
+            {/* Telefon: kart görünümü; yatay kaydırma gerekmez */}
+            <div className="d-md-none">
+              {rows.map((a) => (
+                <div key={a.id} className="p-3 border-bottom">
+                  <div className="d-flex justify-content-between align-items-start mb-1">
+                    <span className="fw-semibold fs-5">{formatTime(a.baslangic)}</span>
+                    <span className={`badge ${BADGE[a.status]}`}>{t(`status.${a.status}`)}</span>
+                  </div>
+                  <div>{a.musteriAd} {a.musteriSoyad}</div>
+                  <div className="small text-secondary">
+                    {formatDate(a.baslangic, lang)} · {a.hizmet}
+                    {isAdmin && ` · ${a.kuaforAd} ${a.kuaforSoyad}`}
+                  </div>
+                  <div className="mt-2">{actionButtons(a, false)}</div>
+                </div>
+              ))}
+            </div>
+            {/* Tablet ve masaüstü: tablo */}
+            <div className="table-responsive d-none d-md-block">
               <table className="table table-hover align-middle mb-0">
                 <thead className="table-light">
                   <tr>
                     <th>{t('appointments.time')}</th>
-                    <th>{t('appointments.date')}</th>
+                    <th className="d-none d-md-table-cell">{t('appointments.date')}</th>
                     <th>{t('appointments.customer')}</th>
                     <th className="d-none d-md-table-cell">{t('appointments.phone')}</th>
                     <th>{t('appointments.service')}</th>
@@ -131,29 +164,19 @@ export default function AppointmentsPage() {
                   {rows.map((a) => (
                     <tr key={a.id}>
                       <td className="fw-semibold">{formatTime(a.baslangic)}</td>
-                      <td>{formatDate(a.baslangic, lang)}</td>
+                      <td className="d-none d-md-table-cell">{formatDate(a.baslangic, lang)}</td>
                       <td>{a.musteriAd} {a.musteriSoyad}</td>
                       <td className="d-none d-md-table-cell">{a.musteriTelefon}</td>
                       <td>{a.hizmet}</td>
                       {isAdmin && <td>{a.kuaforAd} {a.kuaforSoyad}</td>}
                       <td><span className={`badge ${BADGE[a.status]}`}>{t(`status.${a.status}`)}</span></td>
-                      <td className="text-end">
-                        <div className="d-flex justify-content-end flex-wrap gap-1">
-                          {ACTIONS[a.status].map((act) => (
-                            <button key={act.to} className={`btn btn-sm ${act.style}`} onClick={() => changeStatus(a.id, act.to)}>
-                              {t(act.key)}
-                            </button>
-                          ))}
-                          <button className="btn btn-sm btn-outline-secondary" onClick={() => remove(a.id)}>
-                            {t('common.delete')}
-                          </button>
-                        </div>
-                      </td>
+                      <td className="text-end">{actionButtons(a, true)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </div>
       </div>
