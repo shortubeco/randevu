@@ -75,6 +75,54 @@ export default function StylistsPage() {
     }
   }
 
+  // Masaüstü: satır başında açılır "İşlemler" menüsü.
+  const actionsDropdown = (s: AdminStylist) => (
+    <div className="dropdown d-inline-block">
+      <button type="button" className="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+        {t('appointments.actions')}
+      </button>
+      <ul className="dropdown-menu dropdown-menu-end shadow-sm">
+        <li>
+          <button className="dropdown-item" onClick={() => openServices(s.id)}>{t('stylists.servicesButton')}</button>
+        </li>
+        <li>
+          <Link className="dropdown-item" to={`/kuaforler/${s.id}`}>{t('stylists.edit')}</Link>
+        </li>
+        <li>
+          <button className="dropdown-item" onClick={() => toggleActive(s)}>
+            {s.isActive ? t('stylists.deactivate') : t('stylists.activate')}
+          </button>
+        </li>
+        <li><hr className="dropdown-divider" /></li>
+        <li>
+          <button className="dropdown-item text-danger" onClick={() => remove(s.id)}>{t('common.delete')}</button>
+        </li>
+      </ul>
+    </div>
+  );
+
+  // Telefon: aynı genişlikte 2 sütunlu düğmeler; Sil ayrı renkte.
+  const actionsGrid = (s: AdminStylist) => (
+    <div className="row g-2">
+      <div className="col-6">
+        <button className="btn btn-sm btn-outline-primary w-100" onClick={() => openServices(s.id)}>
+          {t('stylists.servicesButton')}
+        </button>
+      </div>
+      <div className="col-6">
+        <Link className="btn btn-sm btn-outline-dark w-100" to={`/kuaforler/${s.id}`}>{t('stylists.edit')}</Link>
+      </div>
+      <div className="col-6">
+        <button className="btn btn-sm btn-outline-secondary w-100" onClick={() => toggleActive(s)}>
+          {s.isActive ? t('stylists.deactivate') : t('stylists.activate')}
+        </button>
+      </div>
+      <div className="col-6">
+        <button className="btn btn-sm btn-outline-danger w-100" onClick={() => remove(s.id)}>{t('common.delete')}</button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="vstack gap-4">
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
@@ -104,12 +152,30 @@ export default function StylistsPage() {
           ) : stylists.length === 0 ? (
             <p className="p-4 text-secondary mb-0">{t('common.empty')}</p>
           ) : (
-            <div className="table-responsive">
+            <>
+            {/* Telefon: kart görünümü */}
+            <div className="d-md-none">
+              {stylists.map((s) => (
+                <div key={s.id} className="p-3 border-bottom">
+                  <div className="d-flex justify-content-between align-items-start mb-1">
+                    <div className="fw-semibold">{s.ad} {s.soyad}</div>
+                    <span className={`badge ${s.isActive ? 'text-bg-success' : 'text-bg-secondary'}`}>
+                      {t(s.isActive ? 'common.active' : 'common.passive')}
+                    </span>
+                  </div>
+                  <div className="small text-secondary text-break">{s.email}</div>
+                  <div className="small text-secondary mb-2">{s.telefon}</div>
+                  {actionsGrid(s)}
+                </div>
+              ))}
+            </div>
+            {/* Tablet ve masaüstü: tablo (açılır menü kırpılmasın diye kaydırma kapsayıcısı yok) */}
+            <div className="d-none d-md-block">
               <table className="table table-hover align-middle mb-0">
                 <thead className="table-light">
                   <tr>
                     <th>{t('stylists.name')}</th>
-                    <th className="d-none d-md-table-cell">{t('stylists.phone')}</th>
+                    <th>{t('stylists.phone')}</th>
                     <th>{t('common.active')}</th>
                     <th className="text-end">{t('appointments.actions')}</th>
                   </tr>
@@ -121,33 +187,19 @@ export default function StylistsPage() {
                         <div className="fw-semibold">{s.ad} {s.soyad}</div>
                         <div className="small text-secondary">{s.email}</div>
                       </td>
-                      <td className="d-none d-md-table-cell">{s.telefon}</td>
+                      <td>{s.telefon}</td>
                       <td>
                         <span className={`badge ${s.isActive ? 'text-bg-success' : 'text-bg-secondary'}`}>
                           {t(s.isActive ? 'common.active' : 'common.passive')}
                         </span>
                       </td>
-                      <td className="text-end">
-                        <div className="d-flex justify-content-end flex-wrap gap-1">
-                          <button className="btn btn-sm btn-outline-primary" onClick={() => openServices(s.id)}>
-                            {t('stylists.services')}
-                          </button>
-                          <button className="btn btn-sm btn-outline-secondary" onClick={() => toggleActive(s)}>
-                            {s.isActive ? t('common.passive') : t('common.active')}
-                          </button>
-                          <Link className="btn btn-sm btn-outline-dark" to={`/kuaforler/${s.id}`}>
-                            {t('stylists.edit')}
-                          </Link>
-                          <button className="btn btn-sm btn-outline-danger" onClick={() => remove(s.id)}>
-                            {t('common.delete')}
-                          </button>
-                        </div>
-                      </td>
+                      <td className="text-end">{actionsDropdown(s)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </div>
       </div>

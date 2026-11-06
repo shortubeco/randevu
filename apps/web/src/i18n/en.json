@@ -94,6 +94,9 @@
     "bio": "About",
     "slot": "Slot length (min)",
     "services": "Services offered",
+    "servicesButton": "Services",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
     "saveServices": "Save services",
     "edit": "Edit",
     "editTitle": "Edit stylist",
@@ -104,6 +107,8 @@
     "notFound": "Stylist not found"
   },
   "services": {
+    "activate": "Activate",
+    "deactivate": "Deactivate",
     "title": "Services",
     "new": "Add",
     "name": "Service name",

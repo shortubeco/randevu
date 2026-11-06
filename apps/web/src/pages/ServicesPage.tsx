@@ -43,6 +43,49 @@ export default function ServicesPage() {
     });
   }
 
+  const toggleLabel = (s: Service) => (s.aktif ? t('services.deactivate') : t('services.activate'));
+  const toggleActive = (s: Service) =>
+    run(() => api(`/admin/services/${s.id}`, { method: 'PATCH', body: JSON.stringify({ aktif: !s.aktif }) }));
+  const removeService = (s: Service) => {
+    if (window.confirm(t('common.confirmDelete'))) run(() => api(`/admin/services/${s.id}`, { method: 'DELETE' }));
+  };
+
+  // Masaüstü: satır başında açılır "İşlemler" menüsü.
+  const actionsDropdown = (s: Service) => (
+    <div className="dropdown d-inline-block">
+      <button type="button" className="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+        {t('appointments.actions')}
+      </button>
+      <ul className="dropdown-menu dropdown-menu-end shadow-sm">
+        <li>
+          <Link className="dropdown-item" to={`/hizmetler/${s.id}`}>{t('services.edit')}</Link>
+        </li>
+        <li>
+          <button className="dropdown-item" onClick={() => toggleActive(s)}>{toggleLabel(s)}</button>
+        </li>
+        <li><hr className="dropdown-divider" /></li>
+        <li>
+          <button className="dropdown-item text-danger" onClick={() => removeService(s)}>{t('common.delete')}</button>
+        </li>
+      </ul>
+    </div>
+  );
+
+  // Telefon: aynı genişlikte 2 sütunlu düğmeler; Sil ayrı renkte.
+  const actionsGrid = (s: Service) => (
+    <div className="row g-2">
+      <div className="col-6">
+        <Link className="btn btn-sm btn-outline-dark w-100" to={`/hizmetler/${s.id}`}>{t('services.edit')}</Link>
+      </div>
+      <div className="col-6">
+        <button className="btn btn-sm btn-outline-secondary w-100" onClick={() => toggleActive(s)}>{toggleLabel(s)}</button>
+      </div>
+      <div className="col-6">
+        <button className="btn btn-sm btn-outline-danger w-100" onClick={() => removeService(s)}>{t('common.delete')}</button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="vstack gap-4">
       <h1 className="h3 page-title mb-0">{t('services.title')}</h1>
@@ -80,7 +123,26 @@ export default function ServicesPage() {
           ) : services.length === 0 ? (
             <p className="p-4 text-secondary mb-0">{t('common.empty')}</p>
           ) : (
-            <div className="table-responsive">
+            <>
+            {/* Telefon: kart görünümü */}
+            <div className="d-md-none">
+              {services.map((s) => (
+                <div key={s.id} className="p-3 border-bottom">
+                  <div className="d-flex justify-content-between align-items-start mb-1">
+                    <div className="fw-semibold">{s.ad}</div>
+                    <span className={`badge ${s.aktif ? 'text-bg-success' : 'text-bg-secondary'}`}>
+                      {t(s.aktif ? 'common.active' : 'common.passive')}
+                    </span>
+                  </div>
+                  <div className="small text-secondary mb-2">
+                    {s.sureDk} dk · {Number(s.fiyat).toFixed(2)} ₺
+                  </div>
+                  {actionsGrid(s)}
+                </div>
+              ))}
+            </div>
+            {/* Tablet ve masaüstü: tablo */}
+            <div className="d-none d-md-block">
               <table className="table table-hover align-middle mb-0">
                 <thead className="table-light">
                   <tr>
@@ -102,28 +164,13 @@ export default function ServicesPage() {
                           {t(s.aktif ? 'common.active' : 'common.passive')}
                         </span>
                       </td>
-                      <td className="text-end">
-                        <div className="d-flex justify-content-end flex-wrap gap-1">
-                          <button
-                            className="btn btn-sm btn-outline-secondary"
-                            onClick={() => run(() => api(`/admin/services/${s.id}`, { method: 'PATCH', body: JSON.stringify({ aktif: !s.aktif }) }))}
-                          >
-                            {s.aktif ? t('common.passive') : t('common.active')}
-                          </button>
-                          <Link className="btn btn-sm btn-outline-dark" to={`/hizmetler/${s.id}`}>{t('services.edit')}</Link>
-                          <button
-                            className="btn btn-sm btn-outline-danger"
-                            onClick={() => window.confirm(t('common.confirmDelete')) && run(() => api(`/admin/services/${s.id}`, { method: 'DELETE' }))}
-                          >
-                            {t('common.delete')}
-                          </button>
-                        </div>
-                      </td>
+                      <td className="text-end">{actionsDropdown(s)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </div>
       </div>

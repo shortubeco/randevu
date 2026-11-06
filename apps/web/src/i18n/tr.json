@@ -94,6 +94,9 @@
     "bio": "Hakkında",
     "slot": "Slot süresi (dk)",
     "services": "Verdiği hizmetler",
+    "servicesButton": "Hizmetler",
+    "activate": "Aktifleştir",
+    "deactivate": "Pasife al",
     "saveServices": "Hizmetleri kaydet",
     "edit": "Düzenle",
     "editTitle": "Kuaförü düzenle",
@@ -104,6 +107,8 @@
     "notFound": "Kuaför bulunamadı"
   },
   "services": {
+    "activate": "Aktifleştir",
+    "deactivate": "Pasife al",
     "title": "Hizmetler",
     "new": "Ekle",
     "name": "Hizmet adı",

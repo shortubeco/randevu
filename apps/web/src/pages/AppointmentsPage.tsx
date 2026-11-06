@@ -77,17 +77,49 @@ export default function AppointmentsPage() {
   const lang = i18n.language;
   const isAdmin = user?.role === 'ADMIN';
 
-  // Tablo ve telefon kartları aynı işlem düğmelerini kullanır.
-  const actionButtons = (a: Appointment, end: boolean) => (
-    <div className={`d-flex flex-wrap gap-1 ${end ? 'justify-content-end' : ''}`}>
+  // Masaüstü: birincil işlem satırda görünür, diğerleri ve Sil açılır menüde.
+  const actionsDesktop = (a: Appointment) => {
+    const [primary, ...rest] = ACTIONS[a.status];
+    return (
+      <div className="d-flex justify-content-end align-items-center gap-1">
+        {primary && (
+          <button className={`btn btn-sm ${primary.style}`} onClick={() => changeStatus(a.id, primary.to)}>
+            {t(primary.key)}
+          </button>
+        )}
+        <div className="dropdown d-inline-block">
+          <button type="button" className="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            {t('appointments.actions')}
+          </button>
+          <ul className="dropdown-menu dropdown-menu-end shadow-sm">
+            {rest.map((act) => (
+              <li key={act.to}>
+                <button className="dropdown-item" onClick={() => changeStatus(a.id, act.to)}>{t(act.key)}</button>
+              </li>
+            ))}
+            {rest.length > 0 && <li><hr className="dropdown-divider" /></li>}
+            <li>
+              <button className="dropdown-item text-danger" onClick={() => remove(a.id)}>{t('common.delete')}</button>
+            </li>
+          </ul>
+        </div>
+      </div>
+    );
+  };
+
+  // Telefon: aynı genişlikte 2 sütunlu düğmeler; Sil ayrı renkte.
+  const actionsGrid = (a: Appointment) => (
+    <div className="row g-2">
       {ACTIONS[a.status].map((act) => (
-        <button key={act.to} className={`btn btn-sm ${act.style}`} onClick={() => changeStatus(a.id, act.to)}>
-          {t(act.key)}
-        </button>
+        <div key={act.to} className="col-6">
+          <button className={`btn btn-sm ${act.style} w-100`} onClick={() => changeStatus(a.id, act.to)}>
+            {t(act.key)}
+          </button>
+        </div>
       ))}
-      <button className="btn btn-sm btn-outline-secondary" onClick={() => remove(a.id)}>
-        {t('common.delete')}
-      </button>
+      <div className="col-6">
+        <button className="btn btn-sm btn-outline-danger w-100" onClick={() => remove(a.id)}>{t('common.delete')}</button>
+      </div>
     </div>
   );
 
@@ -141,19 +173,19 @@ export default function AppointmentsPage() {
                     {formatDate(a.baslangic, lang)} · {a.hizmet}
                     {isAdmin && ` · ${a.kuaforAd} ${a.kuaforSoyad}`}
                   </div>
-                  <div className="mt-2">{actionButtons(a, false)}</div>
+                  <div className="mt-2">{actionsGrid(a)}</div>
                 </div>
               ))}
             </div>
             {/* Tablet ve masaüstü: tablo */}
-            <div className="table-responsive d-none d-md-block">
+            <div className="d-none d-md-block">
               <table className="table table-hover align-middle mb-0">
                 <thead className="table-light">
                   <tr>
                     <th>{t('appointments.time')}</th>
-                    <th className="d-none d-md-table-cell">{t('appointments.date')}</th>
+                    <th className="d-none d-lg-table-cell">{t('appointments.date')}</th>
                     <th>{t('appointments.customer')}</th>
-                    <th className="d-none d-md-table-cell">{t('appointments.phone')}</th>
+                    <th className="d-none d-xl-table-cell">{t('appointments.phone')}</th>
                     <th>{t('appointments.service')}</th>
                     {isAdmin && <th>{t('appointments.stylist')}</th>}
                     <th>{t('appointments.status')}</th>
@@ -164,13 +196,13 @@ export default function AppointmentsPage() {
                   {rows.map((a) => (
                     <tr key={a.id}>
                       <td className="fw-semibold">{formatTime(a.baslangic)}</td>
-                      <td className="d-none d-md-table-cell">{formatDate(a.baslangic, lang)}</td>
+                      <td className="d-none d-lg-table-cell">{formatDate(a.baslangic, lang)}</td>
                       <td>{a.musteriAd} {a.musteriSoyad}</td>
-                      <td className="d-none d-md-table-cell">{a.musteriTelefon}</td>
+                      <td className="d-none d-xl-table-cell">{a.musteriTelefon}</td>
                       <td>{a.hizmet}</td>
                       {isAdmin && <td>{a.kuaforAd} {a.kuaforSoyad}</td>}
                       <td><span className={`badge ${BADGE[a.status]}`}>{t(`status.${a.status}`)}</span></td>
-                      <td className="text-end">{actionButtons(a, true)}</td>
+                      <td className="text-end">{actionsDesktop(a)}</td>
                     </tr>
                   ))}
                 </tbody>
