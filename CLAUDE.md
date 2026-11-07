@@ -196,4 +196,4 @@ Açık kalanlar:
 - **E-posta (kayıt, onay, şifre sıfırlama):** SMTP bilgisi bekliyor.
 - **Güvenlik:** `npm install` uyarıları (API 22, mobil 12) incelenmedi.
 - **KVKK:** aydınlatma metni (landing'de ad ve soyad baş harfiyle gösterilen yorumlar dahil), hesap silme.
-- Yeni tasarım, alan adı taşıma, yorumlar ve il/ilçe çalışmaları commit edilmedi (son commit `9e164a5`). Canlıda yüklü olan web ve API sürümleri de bu commit'lenmemiş koddan derlendi.
+- Yerel `master` dalındaki son commit'ler uzak depoya gönderilmedi (`git push` yapılmadı).

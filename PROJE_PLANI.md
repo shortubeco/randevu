@@ -8,7 +8,6 @@ Birden fazla kuaför işletmesinin (abonelik planlı) dükkanlarını, kuaförle
 - **API** (`api.sozcutvcanli.com`): SaaS şemasına uyarlandı, yayında. Landing yorumları ve Türkçe il/ilçe sıralaması canlıda. Okuma, giriş ve kısıtlar canlıda doğrulandı; yazma akışları canlıda test edildi.
 - **Veritabanı:** SaaS şeması kuruldu. 81 il ve 973 ilçe yüklü. Test verisi (İstanbul, İzmir, Ankara; yaklaşık 5000 randevu) yüklü. Tüm test hesapları `@test.local`.
 - **Mobil uygulama** (`apps/mobile`): Yeni API'ye uyarlandı (dükkan seçimi, `shopId` ile kuaförler, yeni randevu akışı). Önceki sürüm Android APK ile telefonda kuruldu; müşteri girişi cihazda doğrulandı. Tasarım web paneliyle aynı temaya geçirildi, şehir ve ilçe seçimi aramalı açılır liste oldu; bu sürümün APK'sı henüz derlenmedi. Dükkan → randevu akışı cihazda henüz uçtan uca denenmedi.
-- **Kod:** Son çalışmalar commit edilmedi (son commit `9e164a5`); canlıdaki web ve API bu commit'lenmemiş koddan derlendi.
 - Landing'de ilk 10 kuaför, İstanbul, İzmir, Ankara şehir listeleri (en az 3 değerlendirmesi olan kuaförler) ve müşteri yorumları gösteriliyor.
 
 ## Alınan Kararlar
@@ -74,7 +73,7 @@ Birden fazla kuaför işletmesinin (abonelik planlı) dükkanlarını, kuaförle
 - **Gerçek IBAN ve banka bilgisi:** havale ayarına admin panelinden girilmeli (şu an test değeri).
 
 ## Yapılacaklar (öncelik sırasıyla)
-1. **Yapılan çalışmaları commit etmek:** canlıdaki sürüm şu an repoda yok.
+1. **Commit'leri uzak depoya göndermek:** yerel `master` dalı uzak depodan ileride; kod yalnızca bu bilgisayarda duruyor.
 2. **Web panelini elle denemek:** yeni adreste işletme sahibi, kuaför ve admin girişi; yeni kayıt sayfasından kayıt, admin onayı.
 3. **Mobilin yeni sürümünü derleyip cihazda uçtan uca denemek:** APK, açılır liste ve klavye, dükkan, kuaför, hizmet, saat ve randevu oluşturma.
 4. **Landing yorum denetimi:** admin için yorum gizleme; yorumlar şu an onaysız yayınlanıyor.
