@@ -1,4 +1,12 @@
 {
+  "app": {
+    "name": "Randevu"
+  },
+  "select": {
+    "close": "Kapat",
+    "clear": "Aramayı temizle",
+    "noMatch": "Eşleşen sonuç yok"
+  },
   "common": {
     "save": "Kaydet",
     "cancel": "Vazgeç",
@@ -12,6 +20,10 @@
   "auth": {
     "login": "Giriş yap",
     "register": "Kayıt ol",
+    "loginEyebrow": "Kuaför ve berber randevusu",
+    "loginTitle": "Randevunu birkaç dokunuşla al",
+    "registerEyebrow": "Aramıza katıl",
+    "registerTitle": "Hesabını oluştur",
     "email": "E-posta",
     "password": "Şifre",
     "passwordAgain": "Şifre (tekrar)",
@@ -34,11 +46,20 @@
     "profile": "Profil"
   },
   "shops": {
+    "heroEyebrow": "Kuaför ve berber randevusu",
+    "heroTitle": "Kuaförünü bul, randevunu al",
     "city": "Şehir",
     "district": "İlçe",
+    "selectCity": "Şehir seç",
+    "selectDistrict": "İlçe seç",
+    "pickCityFirst": "Önce şehir seç",
+    "searchCity": "Şehir ara",
+    "searchDistrict": "İlçe ara",
     "search": "Hizmet ara (ör. saç boyama)",
     "pickDistrict": "Listelemek için bir ilçe seç",
+    "pickDistrictHint": "Şehir ve ilçeni seçince oradaki dükkanlar burada listelenir.",
     "empty": "Bu ilçede listelenen dükkan yok",
+    "emptyHint": "Yakındaki başka bir ilçeyi seçebilir veya hizmet aramasını temizleyebilirsin.",
     "stylistCount": "{{count}} kuaför"
   },
   "stylists": {
@@ -48,7 +69,7 @@
     "services": "Hizmetler",
     "noServices": "Bu kuaför için hizmet tanımlı değil",
     "minutes": "{{count}} dk",
-    "rating": "★ {{avg}} · {{count}} değerlendirme"
+    "rating": "{{avg}} · {{count}} değerlendirme"
   },
   "booking": {
     "title": "Randevu al",
@@ -75,6 +96,7 @@
     "upcoming": "Yaklaşan",
     "past": "Geçmiş",
     "empty": "Henüz randevun yok. Bir kuaför seçerek başlayabilirsin.",
+    "findShop": "Dükkan bul",
     "cancel": "İptal et",
     "change": "Değiştir",
     "cancelConfirm": "Bu randevuyu iptal etmek istiyor musun?",
@@ -102,6 +124,7 @@
   },
   "review": {
     "title": "Değerlendirmeler",
+    "rateTitle": "Değerlendir",
     "cta": "Değerlendir",
     "ratingLabel": "Puanın",
     "commentLabel": "Yorumun (isteğe bağlı)",
@@ -124,6 +147,20 @@
       "HATIRLATMA": "Randevu hatırlatması",
       "OTHER": "Bildirim"
     }
+  },
+  "months": {
+    "0": "Oca",
+    "1": "Şub",
+    "2": "Mar",
+    "3": "Nis",
+    "4": "May",
+    "5": "Haz",
+    "6": "Tem",
+    "7": "Ağu",
+    "8": "Eyl",
+    "9": "Eki",
+    "10": "Kas",
+    "11": "Ara"
   },
   "days": {
     "0": "Paz",

@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { reviewsApi, stylistsApi } from '../api/endpoints';
 import { ApiError } from '../api/client';
 import type { Stylist, StylistReviews, StylistService } from '../api/types';
-import { Card, Centered, ErrorText, colors } from '../components/ui';
+import { Avatar, Card, Centered, ErrorText, Loading, SectionTitle, Stars, Txt } from '../components/ui';
 import { formatPrice } from '../lib/format';
 import { formatDateKey, istanbulDateOf } from '../lib/time';
+import { colors, radius, spacing } from '../theme';
 import type { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'StylistDetail'>;
@@ -27,7 +29,6 @@ export function StylistDetailScreen({ route, navigation }: Props) {
         const [s, sv] = await Promise.all([stylistsApi.get(stylistId), stylistsApi.services(stylistId)]);
         setStylist(s);
         setServices(sv);
-        navigation.setOptions({ title: `${s.ad} ${s.soyad}` });
       } catch (e) {
         setError(e instanceof ApiError ? e.message : t('common.genericError'));
       } finally {
@@ -39,15 +40,9 @@ export function StylistDetailScreen({ route, navigation }: Props) {
       .forStylist(stylistId)
       .then(setReviews)
       .catch(() => setReviews(null));
-  }, [stylistId, navigation, t]);
+  }, [stylistId, t]);
 
-  if (loading) {
-    return (
-      <Centered>
-        <ActivityIndicator color={colors.primary} />
-      </Centered>
-    );
-  }
+  if (loading) return <Loading />;
 
   if (error || !stylist) {
     return (
@@ -58,74 +53,110 @@ export function StylistDetailScreen({ route, navigation }: Props) {
   }
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16 }} style={{ backgroundColor: colors.bg }}>
-      <Text style={{ fontSize: 22, fontWeight: '700', color: colors.text }}>
-        {stylist.ad} {stylist.soyad}
-      </Text>
-      {stylist.bio ? <Text style={{ color: colors.muted, marginTop: 6, marginBottom: 16 }}>{stylist.bio}</Text> : null}
+    <ScrollView contentContainerStyle={styles.content} style={styles.screen}>
+      <View style={styles.profile}>
+        <Avatar ad={stylist.ad} soyad={stylist.soyad} photoUrl={stylist.photoUrl} size={84} onDark />
+        <Txt variant="title" style={styles.name}>{stylist.ad} {stylist.soyad}</Txt>
+        <Txt variant="subhead" style={styles.shop}>{stylist.dukkanAd} · {stylist.isletmeAd}</Txt>
+        {stylist.ortalama !== null ? (
+          <View style={styles.rating}>
+            <Stars value={stylist.ortalama} size={16} />
+            <Txt variant="subhead" style={styles.ratingText}>
+              {stylist.ortalama.toFixed(1)} · {t('review.count', { count: stylist.adet })}
+            </Txt>
+          </View>
+        ) : null}
+        {stylist.bio ? <Txt variant="body" style={styles.bio}>{stylist.bio}</Txt> : null}
+      </View>
 
-      {reviews && (
-        <Card>
-          <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text }}>{t('review.title')}</Text>
-          {reviews.adet === 0 ? (
-            <Text style={{ color: colors.muted, marginTop: 6 }}>{t('review.none')}</Text>
-          ) : (
-            <>
-              <Text style={{ color: '#B45309', marginTop: 6, fontWeight: '600' }}>
-                {reviews.ortalama?.toFixed(1)} · {t('review.count', { count: reviews.adet })}
-              </Text>
-              {reviews.yorumlar.slice(0, 5).map((y) => (
-                <View key={y.id} style={{ marginTop: 10, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 8 }}>
-                  <Text style={{ color: colors.text, fontWeight: '500' }}>
-                    {'★'.repeat(y.puan)}
-                    {'☆'.repeat(5 - y.puan)} · {y.musteri}
-                  </Text>
-                  {y.yorum ? <Text style={{ color: colors.text, marginTop: 2 }}>{y.yorum}</Text> : null}
-                  <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>
-                    {formatDateKey(istanbulDateOf(y.createdAt))}
-                  </Text>
+      <View style={styles.body}>
+        <SectionTitle title={t('stylists.services')} />
+        {services.length === 0 ? (
+          <Txt variant="subhead">{t('stylists.noServices')}</Txt>
+        ) : (
+          <Card style={styles.group}>
+            {services.map((sv, i) => (
+              <Pressable
+                key={sv.id}
+                onPress={() =>
+                  navigation.navigate('Booking', {
+                    stylistId: stylist.id,
+                    stylistName: `${stylist.ad} ${stylist.soyad}`,
+                    serviceId: sv.id,
+                    serviceName: sv.ad,
+                    sureDk: sv.sureDk,
+                    fiyat: sv.fiyat,
+                  })
+                }
+                accessibilityRole="button"
+                style={({ pressed }) => [styles.service, i > 0 && styles.divider, pressed && styles.pressed]}
+              >
+                <View style={styles.serviceBody}>
+                  <Txt variant="headline">{sv.ad}</Txt>
+                  <View style={styles.duration}>
+                    <Ionicons name="time-outline" size={14} color={colors.muted} />
+                    <Txt variant="caption">{t('stylists.minutes', { count: sv.sureDk })}</Txt>
+                  </View>
                 </View>
-              ))}
-            </>
-          )}
-        </Card>
-      )}
+                <Txt variant="heading" style={styles.price}>{formatPrice(sv.fiyat)}</Txt>
+                <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+              </Pressable>
+            ))}
+          </Card>
+        )}
 
-      <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text, marginVertical: 12 }}>
-        {t('stylists.services')}
-      </Text>
-
-      {services.length === 0 ? (
-        <Text style={{ color: colors.muted }}>{t('stylists.noServices')}</Text>
-      ) : (
-        services.map((sv) => (
-          <Pressable
-            key={sv.id}
-            onPress={() =>
-              navigation.navigate('Booking', {
-                stylistId: stylist.id,
-                stylistName: `${stylist.ad} ${stylist.soyad}`,
-                serviceId: sv.id,
-                serviceName: sv.ad,
-                sureDk: sv.sureDk,
-                fiyat: sv.fiyat,
-              })
-            }
-          >
-            <Card>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <View style={{ flex: 1, paddingRight: 12 }}>
-                  <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text }}>{sv.ad}</Text>
-                  <Text style={{ color: colors.muted, marginTop: 4 }}>
-                    {t('stylists.minutes', { count: sv.sureDk })}
-                  </Text>
-                </View>
-                <Text style={{ fontSize: 16, fontWeight: '700', color: colors.primary }}>{formatPrice(sv.fiyat)}</Text>
-              </View>
-            </Card>
-          </Pressable>
-        ))
-      )}
+        {reviews && (
+          <>
+            <SectionTitle title={t('review.title')} style={styles.reviewsTitle} />
+            {reviews.adet === 0 ? (
+              <Txt variant="subhead">{t('review.none')}</Txt>
+            ) : (
+              reviews.yorumlar.slice(0, 5).map((y) => (
+                <Card key={y.id}>
+                  <View style={styles.reviewHead}>
+                    <Stars value={y.puan} />
+                    <Txt variant="caption">{formatDateKey(istanbulDateOf(y.createdAt))}</Txt>
+                  </View>
+                  {y.yorum ? <Txt variant="body" style={styles.reviewText}>{y.yorum}</Txt> : null}
+                  <Txt variant="caption" style={styles.reviewer}>{y.musteri}</Txt>
+                </Card>
+              ))
+            )}
+          </>
+        )}
+      </View>
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.bg },
+  content: { paddingBottom: spacing.lg },
+  profile: {
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
+    backgroundColor: colors.ink,
+    borderBottomLeftRadius: radius.lg,
+    borderBottomRightRadius: radius.lg,
+  },
+  name: { color: colors.onDark, marginTop: spacing.sm, textAlign: 'center' },
+  shop: { color: colors.onDarkMuted, textAlign: 'center' },
+  rating: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.xs },
+  ratingText: { color: colors.gold },
+  bio: { color: colors.onDarkMuted, textAlign: 'center', marginTop: spacing.sm },
+  body: { padding: spacing.md },
+  group: { paddingVertical: 0, paddingHorizontal: 0, overflow: 'hidden' },
+  service: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md, minHeight: 64 },
+  divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
+  pressed: { backgroundColor: colors.goldTint },
+  serviceBody: { flex: 1, gap: 2 },
+  duration: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  price: { color: colors.goldText },
+  reviewsTitle: { marginTop: spacing.md },
+  reviewHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  reviewText: { marginTop: spacing.sm },
+  reviewer: { marginTop: spacing.sm, fontWeight: '600', color: colors.text },
+});

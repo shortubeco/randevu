@@ -1,12 +1,14 @@
 import { useCallback, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, Text } from 'react-native';
+import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { stylistsApi } from '../api/endpoints';
 import { ApiError } from '../api/client';
 import type { Stylist } from '../api/types';
-import { Button, Card, Centered, ErrorText, colors } from '../components/ui';
+import { Avatar, Button, Card, Centered, EmptyState, ErrorText, Loading, Stars, Txt } from '../components/ui';
+import { colors, spacing } from '../theme';
 import type { RootStackParamList } from '../navigation/types';
 
 // Seçilen dükkanın görünür kuaförleri. Kuaför seçilince kuaför detayına (hizmet seçimi) geçilir.
@@ -38,9 +40,7 @@ export function ShopStylistsScreen() {
     }, [load]),
   );
 
-  if (loading) {
-    return <Centered>{null}</Centered>;
-  }
+  if (loading) return <Loading />;
 
   if (error && stylists.length === 0) {
     return (
@@ -53,42 +53,54 @@ export function ShopStylistsScreen() {
 
   return (
     <FlatList
-      style={{ backgroundColor: colors.bg }}
-      contentContainerStyle={{ padding: 16 }}
+      style={styles.list}
+      contentContainerStyle={styles.content}
       data={stylists}
       keyExtractor={(s) => String(s.id)}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
+          tintColor={colors.goldText}
+          colors={[colors.goldText]}
           onRefresh={() => {
             setRefreshing(true);
             load();
           }}
         />
       }
-      ListEmptyComponent={
-        <Centered>
-          <Text style={{ color: colors.muted }}>{t('stylists.empty')}</Text>
-        </Centered>
-      }
+      ListEmptyComponent={<EmptyState icon="people-outline" title={t('stylists.empty')} />}
       renderItem={({ item }) => (
-        <Pressable onPress={() => navigation.navigate('StylistDetail', { stylistId: item.id })}>
-          <Card>
-            <Text style={{ fontSize: 18, fontWeight: '600', color: colors.text }}>
-              {item.ad} {item.soyad}
-            </Text>
-            {item.bio ? <Text style={{ color: colors.muted, marginTop: 6 }}>{item.bio}</Text> : null}
-            {item.ortalama !== null ? (
-              <Text style={{ color: colors.muted, marginTop: 6, fontSize: 13 }}>
-                {t('stylists.rating', { avg: item.ortalama.toFixed(1), count: item.adet })}
-              </Text>
-            ) : null}
-            <Text style={{ color: colors.muted, marginTop: 8, fontSize: 13 }}>
-              {t('stylists.slotInfo', { minutes: item.slotDakika })}
-            </Text>
+        <Pressable
+          onPress={() => navigation.navigate('StylistDetail', { stylistId: item.id })}
+          accessibilityRole="button"
+          style={({ pressed }) => pressed && styles.pressed}
+        >
+          <Card style={styles.card}>
+            <Avatar ad={item.ad} soyad={item.soyad} photoUrl={item.photoUrl} />
+            <View style={styles.body}>
+              <Txt variant="headline">{item.ad} {item.soyad}</Txt>
+              {item.ortalama !== null ? (
+                <View style={styles.rating}>
+                  <Stars value={item.ortalama} />
+                  <Txt variant="caption">{t('stylists.rating', { avg: item.ortalama.toFixed(1), count: item.adet })}</Txt>
+                </View>
+              ) : null}
+              {item.bio ? <Txt variant="subhead" numberOfLines={2}>{item.bio}</Txt> : null}
+              <Txt variant="caption">{t('stylists.slotInfo', { minutes: item.slotDakika })}</Txt>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.muted} />
           </Card>
         </Pressable>
       )}
     />
   );
 }
+
+const styles = StyleSheet.create({
+  list: { flex: 1, backgroundColor: colors.bg },
+  content: { padding: spacing.md, flexGrow: 1 },
+  pressed: { opacity: 0.75 },
+  card: { flexDirection: 'row', alignItems: 'center', gap: spacing.ms },
+  body: { flex: 1, gap: spacing.xs },
+  rating: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.sm },
+});

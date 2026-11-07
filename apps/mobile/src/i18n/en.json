@@ -1,4 +1,12 @@
 {
+  "app": {
+    "name": "Randevu"
+  },
+  "select": {
+    "close": "Close",
+    "clear": "Clear search",
+    "noMatch": "No matches found"
+  },
   "common": {
     "save": "Save",
     "cancel": "Cancel",
@@ -12,6 +20,10 @@
   "auth": {
     "login": "Log in",
     "register": "Sign up",
+    "loginEyebrow": "Salon and barber booking",
+    "loginTitle": "Book your appointment in a few taps",
+    "registerEyebrow": "Join us",
+    "registerTitle": "Create your account",
     "email": "Email",
     "password": "Password",
     "passwordAgain": "Password (again)",
@@ -34,11 +46,20 @@
     "profile": "Profile"
   },
   "shops": {
+    "heroEyebrow": "Salon and barber booking",
+    "heroTitle": "Find your stylist, book your time",
     "city": "City",
     "district": "District",
+    "selectCity": "Choose a city",
+    "selectDistrict": "Choose a district",
+    "pickCityFirst": "Choose a city first",
+    "searchCity": "Search cities",
+    "searchDistrict": "Search districts",
     "search": "Search service (e.g. hair coloring)",
     "pickDistrict": "Pick a district to see shops",
+    "pickDistrictHint": "Once you choose a city and district, shops there are listed here.",
     "empty": "No shops are listed in this district",
+    "emptyHint": "Try a nearby district or clear the service search.",
     "stylistCount": "{{count}} stylists"
   },
   "stylists": {
@@ -48,7 +69,7 @@
     "services": "Services",
     "noServices": "This stylist has no services yet",
     "minutes": "{{count}} min",
-    "rating": "★ {{avg}} · {{count}} reviews"
+    "rating": "{{avg}} · {{count}} reviews"
   },
   "booking": {
     "title": "Book appointment",
@@ -75,6 +96,7 @@
     "upcoming": "Upcoming",
     "past": "Past",
     "empty": "You have no appointments yet. Pick a stylist to start.",
+    "findShop": "Find a shop",
     "cancel": "Cancel",
     "change": "Reschedule",
     "cancelConfirm": "Do you want to cancel this appointment?",
@@ -102,6 +124,7 @@
   },
   "review": {
     "title": "Reviews",
+    "rateTitle": "Rate",
     "cta": "Rate",
     "ratingLabel": "Your rating",
     "commentLabel": "Your comment (optional)",
@@ -124,6 +147,20 @@
       "HATIRLATMA": "Appointment reminder",
       "OTHER": "Notification"
     }
+  },
+  "months": {
+    "0": "Jan",
+    "1": "Feb",
+    "2": "Mar",
+    "3": "Apr",
+    "4": "May",
+    "5": "Jun",
+    "6": "Jul",
+    "7": "Aug",
+    "8": "Sep",
+    "9": "Oct",
+    "10": "Nov",
+    "11": "Dec"
   },
   "days": {
     "0": "Sun",

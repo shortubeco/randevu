@@ -1,15 +1,24 @@
 import { useCallback, useState } from 'react';
-import { FlatList, RefreshControl, Text, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from '@react-navigation/native';
 import { notificationsApi } from '../api/endpoints';
 import { ApiError } from '../api/client';
 import type { AppNotification } from '../api/types';
-import { Button, Card, Centered, ErrorText, colors } from '../components/ui';
+import { Button, Centered, EmptyState, ErrorText, Loading, Txt, type IconName } from '../components/ui';
 import { istanbulDateOf, istanbulTime, formatDateKey } from '../lib/time';
 import { useUnread } from '../notifications/unread';
+import { colors, spacing } from '../theme';
 
 const KNOWN_TYPES = ['ONAYLANDI', 'IPTAL', 'TAMAMLANDI', 'HATIRLATMA'];
+
+const TYPE_ICONS: Record<string, IconName> = {
+  ONAYLANDI: 'checkmark-circle',
+  IPTAL: 'close-circle',
+  TAMAMLANDI: 'ribbon',
+  HATIRLATMA: 'alarm',
+};
 
 export function NotificationsScreen() {
   const { t } = useTranslation();
@@ -39,7 +48,7 @@ export function NotificationsScreen() {
     }, [load]),
   );
 
-  if (loading) return <Centered>{null}</Centered>;
+  if (loading) return <Loading />;
 
   if (error && items.length === 0) {
     return (
@@ -52,37 +61,56 @@ export function NotificationsScreen() {
 
   return (
     <FlatList
-      style={{ backgroundColor: colors.bg }}
-      contentContainerStyle={{ padding: 16 }}
+      style={styles.list}
+      contentContainerStyle={styles.content}
       data={items}
       keyExtractor={(n) => String(n.id)}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
+          tintColor={colors.goldText}
+          colors={[colors.goldText]}
           onRefresh={() => {
             setRefreshing(true);
             load();
           }}
         />
       }
-      ListEmptyComponent={
-        <Centered>
-          <Text style={{ color: colors.muted, textAlign: 'center' }}>{t('notifications.empty')}</Text>
-        </Centered>
-      }
+      ListEmptyComponent={<EmptyState icon="notifications-outline" title={t('notifications.empty')} />}
       renderItem={({ item: n }) => (
-        <Card>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-            <Text style={{ fontWeight: '600', color: colors.text }}>
-              {t(`notifications.types.${KNOWN_TYPES.includes(n.tip) ? n.tip : 'OTHER'}`)}
-            </Text>
-            <Text style={{ fontSize: 12, color: colors.muted }}>
-              {formatDateKey(istanbulDateOf(n.createdAt))} {istanbulTime(n.createdAt)}
-            </Text>
+        <View style={styles.row}>
+          <View style={styles.icon}>
+            <Ionicons name={TYPE_ICONS[n.tip] ?? 'notifications'} size={20} color={colors.gold} />
           </View>
-          <Text style={{ color: colors.text }}>{n.icerik}</Text>
-        </Card>
+          <View style={styles.body}>
+            <Txt variant="headline">{t(`notifications.types.${KNOWN_TYPES.includes(n.tip) ? n.tip : 'OTHER'}`)}</Txt>
+            <Txt variant="body">{n.icerik}</Txt>
+            <Txt variant="caption">{formatDateKey(istanbulDateOf(n.createdAt))} {istanbulTime(n.createdAt)}</Txt>
+          </View>
+        </View>
       )}
     />
   );
 }
+
+const styles = StyleSheet.create({
+  list: { flex: 1, backgroundColor: colors.bg },
+  content: { flexGrow: 1 },
+  row: {
+    flexDirection: 'row',
+    gap: spacing.ms,
+    padding: spacing.md,
+    backgroundColor: colors.card,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  icon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.ink,
+  },
+  body: { flex: 1, gap: 2 },
+});

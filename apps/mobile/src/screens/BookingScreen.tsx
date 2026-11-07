@@ -1,18 +1,21 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { appointmentsApi, stylistsApi } from '../api/endpoints';
 import { ApiError } from '../api/client';
 import type { Slot } from '../api/types';
-import { Button, Card, ErrorText, colors } from '../components/ui';
+import { Button, EmptyState, ErrorText, SectionTitle, Txt } from '../components/ui';
 import { formatPrice } from '../lib/format';
-import { addDays, formatDateKey, istanbulDateKey, weekdayOf } from '../lib/time';
+import { addDays, istanbulDateKey, weekdayOf } from '../lib/time';
+import { colors, radius, spacing, type } from '../theme';
 import type { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Booking'>;
 
 const DAYS_AHEAD = 14;
+const SLOT_COLUMNS = 4;
 
 interface SlotResult {
   key: string;
@@ -22,6 +25,8 @@ interface SlotResult {
 
 export function BookingScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const params = route.params;
   const reschedule = params.appointmentId !== undefined;
 
@@ -99,97 +104,145 @@ export function BookingScreen({ route, navigation }: Props) {
     }
   }
 
+  const slotWidth = (width - spacing.md * 2 - spacing.sm * (SLOT_COLUMNS - 1)) / SLOT_COLUMNS;
+
   return (
-    <ScrollView contentContainerStyle={{ padding: 16 }} style={{ flex: 1, backgroundColor: colors.bg }}>
-      <Card>
-        <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 8 }}>{t('booking.summary')}</Text>
-        <SummaryRow label={t('booking.stylist')} value={params.stylistName} />
-        <SummaryRow label={t('booking.service')} value={params.serviceName} />
-        {params.sureDk !== undefined ? (
-          <SummaryRow label={t('booking.duration')} value={t('stylists.minutes', { count: params.sureDk })} />
-        ) : null}
-        {params.fiyat !== undefined ? <SummaryRow label={t('booking.price')} value={formatPrice(params.fiyat)} /> : null}
-      </Card>
+    <View style={styles.screen}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.summary}>
+          <Txt variant="eyebrow" style={styles.summaryEyebrow}>{t('booking.summary')}</Txt>
+          <Txt variant="heading" style={styles.summaryTitle}>{params.serviceName}</Txt>
+          <SummaryRow label={t('booking.stylist')} value={params.stylistName} />
+          {params.sureDk !== undefined ? (
+            <SummaryRow label={t('booking.duration')} value={t('stylists.minutes', { count: params.sureDk })} />
+          ) : null}
+          {params.fiyat !== undefined ? <SummaryRow label={t('booking.price')} value={formatPrice(params.fiyat)} /> : null}
+        </View>
 
-      <Text style={sectionTitle}>{t('booking.date')}</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
-        {dates.map((d) => {
-          const active = d === selectedDate;
-          return (
-            <Pressable
-              key={d}
-              onPress={() => pickDate(d)}
-              style={{
-                paddingHorizontal: 14,
-                paddingVertical: 10,
-                marginRight: 8,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: active ? colors.primary : colors.border,
-                backgroundColor: active ? colors.primary : colors.card,
-                alignItems: 'center',
-              }}
-            >
-              <Text style={{ fontSize: 12, color: active ? '#fff' : colors.muted }}>
-                {t(`days.${weekdayOf(d)}`)}
-              </Text>
-              <Text style={{ fontSize: 15, fontWeight: '600', color: active ? '#fff' : colors.text }}>
-                {formatDateKey(d).slice(0, 5)}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-
-      <Text style={sectionTitle}>{t('booking.time')}</Text>
-      {slotsLoading ? (
-        <ActivityIndicator color={colors.primary} style={{ marginVertical: 16 }} />
-      ) : slotsError ? (
-        <ErrorText message={slotsError} />
-      ) : slots.length === 0 ? (
-        <Text style={{ color: colors.muted, marginBottom: 12 }}>{t('booking.noSlots')}</Text>
-      ) : (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-          {slots.map((slot) => {
-            const active = selectedSlot?.startsAt === slot.startsAt;
+        <SectionTitle title={t('booking.date')} />
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.dates}
+          contentContainerStyle={styles.datesContent}
+        >
+          {dates.map((d) => {
+            const active = d === selectedDate;
+            const [, m, day] = d.split('-').map(Number);
             return (
               <Pressable
-                key={slot.startsAt}
-                onPress={() => setSelectedSlot(slot)}
-                style={{
-                  paddingHorizontal: 14,
-                  paddingVertical: 10,
-                  borderRadius: 10,
-                  borderWidth: 1,
-                  borderColor: active ? colors.primary : colors.border,
-                  backgroundColor: active ? colors.primary : colors.card,
-                }}
+                key={d}
+                onPress={() => pickDate(d)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                style={[styles.date, active && styles.dateActive]}
               >
-                <Text style={{ fontWeight: '600', color: active ? '#fff' : colors.text }}>{slot.label}</Text>
+                <Text style={[styles.dateWeekday, active && styles.onGold]}>{t(`days.${weekdayOf(d)}`)}</Text>
+                <Text style={[styles.dateDay, active && styles.onGold]}>{day}</Text>
+                <Text style={[styles.dateWeekday, active && styles.onGold]}>{t(`months.${m - 1}`)}</Text>
               </Pressable>
             );
           })}
-        </View>
-      )}
+        </ScrollView>
 
-      <ErrorText message={formError} />
-      <Button
-        title={reschedule ? t('booking.update') : t('booking.confirm')}
-        onPress={confirm}
-        disabled={!selectedSlot}
-        loading={busy}
-      />
-    </ScrollView>
-  );
-}
+        <SectionTitle title={t('booking.time')} />
+        {slotsLoading ? (
+          <ActivityIndicator size="large" color={colors.goldText} style={styles.spinner} />
+        ) : slotsError ? (
+          <ErrorText message={slotsError} />
+        ) : slots.length === 0 ? (
+          <EmptyState icon="calendar-clear-outline" title={t('booking.noSlots')} />
+        ) : (
+          <View style={styles.slots}>
+            {slots.map((slot) => {
+              const active = selectedSlot?.startsAt === slot.startsAt;
+              return (
+                <Pressable
+                  key={slot.startsAt}
+                  onPress={() => setSelectedSlot(slot)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  style={[styles.slot, { width: slotWidth }, active && styles.dateActive]}
+                >
+                  <Text style={[styles.slotText, active && styles.onGold]}>{slot.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+      </ScrollView>
 
-const sectionTitle = { fontSize: 16, fontWeight: '600' as const, color: colors.text, marginBottom: 8 };
-
-function SummaryRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 }}>
-      <Text style={{ color: colors.muted }}>{label}</Text>
-      <Text style={{ color: colors.text, fontWeight: '500', flexShrink: 1, textAlign: 'right' }}>{value}</Text>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.ms }]}>
+        <ErrorText message={formError} />
+        <Button
+          title={reschedule ? t('booking.update') : t('booking.confirm')}
+          onPress={confirm}
+          disabled={!selectedSlot}
+          loading={busy}
+        />
+      </View>
     </View>
   );
 }
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.summaryRow}>
+      <Txt variant="subhead" style={styles.summaryLabel}>{label}</Txt>
+      <Txt variant="subhead" style={styles.summaryValue}>{value}</Txt>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.bg },
+  content: { padding: spacing.md },
+  summary: {
+    backgroundColor: colors.ink,
+    borderRadius: radius.lg,
+    borderCurve: 'continuous',
+    padding: spacing.md,
+    marginBottom: spacing.ml,
+  },
+  summaryEyebrow: { color: colors.gold },
+  summaryTitle: { color: colors.onDark, marginTop: 2, marginBottom: spacing.sm },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md, paddingVertical: 3 },
+  summaryLabel: { color: colors.onDarkMuted },
+  summaryValue: { color: colors.onDark, fontWeight: '500', flexShrink: 1, textAlign: 'right' },
+  dates: { marginBottom: spacing.ml, marginHorizontal: -spacing.md },
+  datesContent: { gap: spacing.sm, paddingHorizontal: spacing.md },
+  date: {
+    width: 62,
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+  },
+  dateActive: { backgroundColor: colors.gold, borderColor: colors.gold },
+  dateWeekday: { ...type.caption },
+  dateDay: { ...type.heading },
+  onGold: { color: colors.ink },
+  spinner: { marginVertical: spacing.lg },
+  slots: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  slot: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+    borderRadius: radius.sm,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+  },
+  slotText: { fontSize: 15, lineHeight: 20, fontWeight: '600', color: colors.heading },
+  footer: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.ms,
+    backgroundColor: colors.card,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+});

@@ -1,11 +1,18 @@
 import { useState } from 'react';
-import { Alert, ScrollView, Text, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { authApi } from '../api/endpoints';
 import { ApiError } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
-import { Button, Card, ErrorText, Field, colors } from '../components/ui';
+import { Avatar, Button, Card, ErrorText, Field, SectionTitle, Txt } from '../components/ui';
 import { setLanguage, type Lang } from '../i18n';
+import { colors, radius, spacing } from '../theme';
+
+const LANGS: { code: Lang; label: string }[] = [
+  { code: 'tr', label: 'Türkçe' },
+  { code: 'en', label: 'English' },
+];
 
 export function ProfileScreen() {
   const { t, i18n } = useTranslation();
@@ -71,51 +78,101 @@ export function ProfileScreen() {
   const lang = (i18n.language === 'en' ? 'en' : 'tr') as Lang;
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16 }} style={{ flex: 1, backgroundColor: colors.bg }}>
-      <Card>
-        <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 12 }}>{t('profile.info')}</Text>
-        <Text style={{ fontSize: 16, color: colors.text, fontWeight: '600', marginBottom: 2 }}>
-          {user?.ad} {user?.soyad}
-        </Text>
-        <Text style={{ color: colors.muted, marginBottom: 12 }}>{user?.email}</Text>
-        <Field label={t('auth.ad')} value={ad} onChangeText={setAd} autoCapitalize="words" />
-        <Field label={t('auth.soyad')} value={soyad} onChangeText={setSoyad} autoCapitalize="words" />
-        <Field label={t('auth.telefon')} value={telefon} onChangeText={setTelefon} keyboardType="phone-pad" />
-        <ErrorText message={infoError} />
-        {infoOk ? <Text style={{ color: colors.primary, marginBottom: 8 }}>{infoOk}</Text> : null}
-        <Button title={t('common.save')} onPress={saveInfo} loading={infoBusy} />
-      </Card>
-
-      <Card>
-        <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 12 }}>{t('profile.changePassword')}</Text>
-        <Field label={t('profile.currentPassword')} value={currentPw} onChangeText={setCurrentPw} secureTextEntry />
-        <Field label={t('profile.newPassword')} value={newPw} onChangeText={setNewPw} secureTextEntry />
-        <ErrorText message={pwError} />
-        <Button
-          title={t('profile.changePassword')}
-          variant="secondary"
-          onPress={changePassword}
-          loading={pwBusy}
-          disabled={!currentPw || !newPw}
-        />
-      </Card>
-
-      <Card>
-        <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 12 }}>{t('profile.language')}</Text>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          {(['tr', 'en'] as const).map((code) => (
-            <View key={code} style={{ flex: 1 }}>
-              <Button
-                title={code.toUpperCase()}
-                variant={lang === code ? 'primary' : 'secondary'}
-                onPress={() => setLanguage(code)}
-              />
-            </View>
-          ))}
+    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <View style={styles.profile}>
+          <Avatar ad={user?.ad ?? ''} soyad={user?.soyad ?? ''} size={72} onDark />
+          <View style={styles.profileText}>
+            <Txt variant="title" style={styles.name}>{user?.ad} {user?.soyad}</Txt>
+            <Txt variant="subhead" style={styles.email} numberOfLines={1}>{user?.email}</Txt>
+          </View>
         </View>
-      </Card>
 
-      <Button title={t('profile.logout')} variant="danger" onPress={confirmLogout} />
-    </ScrollView>
+        <View style={styles.body}>
+          <SectionTitle title={t('profile.info')} />
+          <Card style={styles.card}>
+            <Field label={t('auth.ad')} icon="person-outline" value={ad} onChangeText={setAd} autoCapitalize="words" />
+            <Field label={t('auth.soyad')} icon="person-outline" value={soyad} onChangeText={setSoyad} autoCapitalize="words" />
+            <Field label={t('auth.telefon')} icon="call-outline" value={telefon} onChangeText={setTelefon} keyboardType="phone-pad" />
+            <ErrorText message={infoError} />
+            {infoOk ? (
+              <View style={styles.ok}>
+                <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+                <Txt variant="subhead" style={styles.okText}>{infoOk}</Txt>
+              </View>
+            ) : null}
+            <Button title={t('common.save')} onPress={saveInfo} loading={infoBusy} />
+          </Card>
+
+          <SectionTitle title={t('profile.changePassword')} />
+          <Card style={styles.card}>
+            <Field label={t('profile.currentPassword')} icon="lock-closed-outline" value={currentPw} onChangeText={setCurrentPw} secureTextEntry />
+            <Field label={t('profile.newPassword')} icon="lock-closed-outline" value={newPw} onChangeText={setNewPw} secureTextEntry />
+            <ErrorText message={pwError} />
+            <Button
+              title={t('profile.changePassword')}
+              variant="secondary"
+              onPress={changePassword}
+              loading={pwBusy}
+              disabled={!currentPw || !newPw}
+            />
+          </Card>
+
+          <SectionTitle title={t('profile.language')} />
+          <View style={styles.segment} accessibilityRole="radiogroup">
+            {LANGS.map(({ code, label }) => {
+              const active = lang === code;
+              return (
+                <Pressable
+                  key={code}
+                  onPress={() => setLanguage(code)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: active }}
+                  style={[styles.segmentItem, active && styles.segmentActive]}
+                >
+                  <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <Button title={t('profile.logout')} variant="danger" icon="log-out-outline" onPress={confirmLogout} />
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.bg },
+  content: { paddingBottom: spacing.lg },
+  profile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.md,
+    paddingBottom: spacing.lg,
+    backgroundColor: colors.ink,
+    borderBottomLeftRadius: radius.lg,
+    borderBottomRightRadius: radius.lg,
+  },
+  profileText: { flex: 1 },
+  name: { color: colors.onDark },
+  email: { color: colors.onDarkMuted },
+  body: { padding: spacing.md },
+  card: { marginBottom: spacing.lg },
+  ok: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.ms },
+  okText: { color: colors.success },
+  segment: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    padding: spacing.xs,
+    marginBottom: spacing.lg,
+    backgroundColor: colors.card,
+    borderRadius: radius.full,
+  },
+  segmentItem: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 44, borderRadius: radius.full },
+  segmentActive: { backgroundColor: colors.gold },
+  segmentText: { fontSize: 15, lineHeight: 20, fontWeight: '500', color: colors.text },
+  segmentTextActive: { color: colors.ink, fontWeight: '600' },
+});
