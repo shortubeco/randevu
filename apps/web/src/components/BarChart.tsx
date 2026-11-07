@@ -12,7 +12,7 @@ interface Props {
 
 // Tek seri, tek eksenli dikey çubuk grafik. Değerler çubuğun üstünde,
 // ayrıntı title ile ipucu olarak gösterilir.
-export default function BarChart({ data, format, ariaLabel, color = '#0d6efd' }: Props) {
+export default function BarChart({ data, format, ariaLabel, color = '#f2c05d' }: Props) {
   const max = Math.max(1, ...data.map((d) => d.value));
   return (
     <figure aria-label={ariaLabel} className="mb-0">

@@ -19,10 +19,10 @@ export default function DashboardPage() {
   const k = data.kpi;
   const isOwner = data.scope === 'ISLETME_SAHIBI';
   const kpis = [
-    { label: t('dashboard.today'), value: k.bugun, color: '#0d6efd', icon: 'bi-calendar-day' },
-    { label: t('dashboard.pending'), value: k.bekleyen, color: '#ffc107', icon: 'bi-hourglass-split' },
+    { label: t('dashboard.today'), value: k.bugun, color: '#15152e', icon: 'bi-calendar-day' },
+    { label: t('dashboard.pending'), value: k.bekleyen, color: '#f2c05d', icon: 'bi-hourglass-split' },
     { label: t('dashboard.monthCompleted'), value: k.buAyTamamlanan, color: '#198754', icon: 'bi-check2-circle' },
-    { label: t('dashboard.monthRevenue'), value: money(k.buAyCiro), color: '#6f42c1', icon: 'bi-cash-stack' },
+    { label: t('dashboard.monthRevenue'), value: money(k.buAyCiro), color: '#8a5f0f', icon: 'bi-cash-stack' },
   ];
 
   return (
@@ -66,7 +66,7 @@ export default function DashboardPage() {
                 ariaLabel={t('dashboard.monthlyRevenue')}
                 data={data.monthly.map((m) => ({ label: m.ay.slice(5), value: m.ciro }))}
                 format={(n) => Math.round(n).toLocaleString('tr-TR')}
-                color="#6f42c1"
+                color="#15152e"
               />
             </div>
           </div>

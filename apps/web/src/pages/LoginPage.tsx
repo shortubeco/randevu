@@ -41,7 +41,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-vh-100 d-flex align-items-center justify-content-center p-3" style={{ background: 'linear-gradient(135deg, #14213d 0%, #1b2d52 60%, #0d6efd 140%)' }}>
+    <div className="min-vh-100 d-flex align-items-center justify-content-center p-3 auth-bg">
       <div className="card border-0 shadow-lg w-100" style={{ maxWidth: 400 }}>
         <div className="card-body p-4 p-md-5">
           <div className="text-center mb-4">

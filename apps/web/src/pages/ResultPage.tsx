@@ -22,7 +22,7 @@ export default function ResultPage() {
   if (!state) return <Navigate to="/kayit" replace />;
 
   return (
-    <div className="min-vh-100 d-flex align-items-center justify-content-center p-3" style={{ background: '#f4f6f9' }}>
+    <div className="min-vh-100 d-flex align-items-center justify-content-center p-3" style={{ background: 'var(--app-bg)' }}>
       <div className="card border-0 shadow-sm w-100" style={{ maxWidth: 560 }}>
         <div className="card-body p-4 p-md-5">
           <div className="text-center mb-3">

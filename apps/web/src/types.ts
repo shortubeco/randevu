@@ -186,10 +186,24 @@ export interface LandingStylist {
   adet: number;
 }
 
+export interface LandingReview {
+  id: number;
+  puan: number;
+  yorum: string;
+  musteriAd: string;
+  musteriSoyadKisa: string;
+  kuaforAd: string;
+  kuaforSoyadKisa: string;
+  isletmeAd: string;
+  ilceAd: string;
+}
+
 export interface LandingData {
   stats: { isletme: number; kuafor: number; degerlendirme: number };
   topStylists: LandingStylist[];
   cities: { ilAd: string; stylists: LandingStylist[] }[];
+  // Eski API sürümü bu alanı göndermez; bölüm o durumda gizlenir.
+  yorumlar?: LandingReview[];
 }
 
 export interface Dashboard {

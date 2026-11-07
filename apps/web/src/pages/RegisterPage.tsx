@@ -1,9 +1,44 @@
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { PublicFooter, PublicHeader } from '../components/PublicChrome';
 import { errorText } from '../store/baseQuery';
 import { useCitiesQuery, useDistrictsQuery, usePlansQuery, useRegisterIsletmeMutation } from '../store/apiSlice';
 import type { PlanKod } from '../types';
+
+interface FieldProps {
+  id: string;
+  label: string;
+  icon: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  required?: boolean;
+  minLength?: number;
+  autoComplete?: string;
+}
+
+// Etiketli metin alanı, sağında ikon. Sayfa bileşeninin dışında tanımlı; içeride olsaydı her tuşta odak kaybolurdu.
+function Field({ id, label, icon, value, onChange, type = 'text', required, minLength, autoComplete }: FieldProps) {
+  return (
+    <div className="col-sm-6">
+      <label className="form-label" htmlFor={id}>{label}</label>
+      <div className="reg-field">
+        <input
+          id={id}
+          type={type}
+          className="form-control"
+          required={required}
+          minLength={minLength}
+          autoComplete={autoComplete}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+        <i className={`bi ${icon}`} aria-hidden="true" />
+      </div>
+    </div>
+  );
+}
 
 // İşletme sahibi kaydı: sahip bilgileri, işletme, ilk dükkan ve plan.
 export default function RegisterPage() {
@@ -68,80 +103,111 @@ export default function RegisterPage() {
   const districts = districtsQ.data ?? [];
 
   return (
-    <div className="min-vh-100 py-4 px-3" style={{ background: '#f4f6f9' }}>
-      <div className="container" style={{ maxWidth: 820 }}>
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <h1 className="h3 page-title mb-0">{t('register.title')}</h1>
-          <Link to="/" className="small">{t('register.back')}</Link>
+    <div className="landing">
+      <PublicHeader />
+
+      <section className="lp-banner">
+        <div className="container position-relative text-center">
+          <h1 className="lp-banner-title">{t('register.title')}</h1>
+          <nav aria-label={t('register.breadcrumb')}>
+            <ol className="lp-breadcrumb">
+              <li><Link to="/">{t('register.back')}</Link></li>
+              <li aria-current="page">{t('register.title')}</li>
+            </ol>
+          </nav>
         </div>
-        <form onSubmit={onSubmit} className="vstack gap-4">
-          <section className="card shadow-sm border-0">
-            <div className="card-body">
-              <h2 className="h6 fw-bold mb-3">{t('register.ownerSection')}</h2>
-              <div className="row g-3">
-                <div className="col-md-6"><label className="form-label" htmlFor="ad">{t('register.name')}</label><input id="ad" className="form-control" required value={form.ad} onChange={(e) => set('ad', e.target.value)} /></div>
-                <div className="col-md-6"><label className="form-label" htmlFor="soyad">{t('register.surname')}</label><input id="soyad" className="form-control" required value={form.soyad} onChange={(e) => set('soyad', e.target.value)} /></div>
-                <div className="col-md-6"><label className="form-label" htmlFor="telefon">{t('register.phone')}</label><input id="telefon" className="form-control" required value={form.telefon} onChange={(e) => set('telefon', e.target.value)} /></div>
-                <div className="col-md-6"><label className="form-label" htmlFor="email">{t('register.email')}</label><input id="email" type="email" className="form-control" required value={form.email} onChange={(e) => set('email', e.target.value)} autoComplete="email" /></div>
-                <div className="col-md-6"><label className="form-label" htmlFor="password">{t('register.password')}</label><input id="password" type="password" className="form-control" required minLength={8} value={form.password} onChange={(e) => set('password', e.target.value)} autoComplete="new-password" /></div>
-                <div className="col-md-6"><label className="form-label" htmlFor="passwordRepeat">{t('register.passwordRepeat')}</label><input id="passwordRepeat" type="password" className="form-control" required minLength={8} value={form.passwordRepeat} onChange={(e) => set('passwordRepeat', e.target.value)} autoComplete="new-password" /></div>
-              </div>
-            </div>
-          </section>
+      </section>
 
-          <section className="card shadow-sm border-0">
-            <div className="card-body">
-              <h2 className="h6 fw-bold mb-3">{t('register.salonSection')}</h2>
-              <div className="row g-3">
-                <div className="col-md-6"><label className="form-label" htmlFor="isletmeAd">{t('register.businessName')}</label><input id="isletmeAd" className="form-control" required value={form.isletmeAd} onChange={(e) => set('isletmeAd', e.target.value)} /></div>
-                <div className="col-md-6"><label className="form-label" htmlFor="dukkanAd">{t('register.shopName')}</label><input id="dukkanAd" className="form-control" required value={form.dukkanAd} onChange={(e) => set('dukkanAd', e.target.value)} /></div>
-                <div className="col-md-6">
-                  <label className="form-label" htmlFor="il">{t('register.city')}</label>
-                  <select id="il" className="form-select" required value={form.ilId} onChange={(e) => onCityChange(e.target.value)}>
-                    <option value="">{t('register.choose')}</option>
-                    {cities.map((c) => <option key={c.id} value={c.id}>{c.ad}</option>)}
-                  </select>
-                </div>
-                <div className="col-md-6">
-                  <label className="form-label" htmlFor="ilce">{t('register.district')}</label>
-                  <select id="ilce" className="form-select" required value={form.ilceId} onChange={(e) => set('ilceId', e.target.value)} disabled={!form.ilId}>
-                    <option value="">{t('register.choose')}</option>
-                    {districts.map((d) => <option key={d.id} value={d.id}>{d.ad}</option>)}
-                  </select>
-                </div>
-                <div className="col-md-8"><label className="form-label" htmlFor="adres">{t('register.address')}</label><input id="adres" className="form-control" value={form.adres} onChange={(e) => set('adres', e.target.value)} /></div>
-                <div className="col-md-4"><label className="form-label" htmlFor="dukkanTelefon">{t('register.shopPhone')}</label><input id="dukkanTelefon" className="form-control" value={form.dukkanTelefon} onChange={(e) => set('dukkanTelefon', e.target.value)} /></div>
-              </div>
-            </div>
-          </section>
-
-          <section className="card shadow-sm border-0">
-            <div className="card-body">
-              <h2 className="h6 fw-bold mb-3">{t('register.planSection')}</h2>
-              <div className="row g-3">
-                {plans.map((p) => (
-                  <div key={p.kod} className="col-md-4">
-                    <label className={`card h-100 p-3 ${form.planKod === p.kod ? 'border-primary border-2' : ''}`} style={{ cursor: 'pointer' }}>
-                      <div className="form-check">
-                        <input className="form-check-input" type="radio" name="plan" value={p.kod} checked={form.planKod === p.kod} onChange={() => set('planKod', p.kod)} />
-                        <span className="form-check-label fw-semibold">{p.ad}</span>
-                      </div>
-                      <div className="small text-secondary mt-1">
-                        {p.aylikUcret === null ? t('landing.priceSoon') : p.aylikUcret === 0 ? t('landing.free') : `${p.aylikUcret.toLocaleString('tr-TR')} ₺ ${t('landing.perMonth')}`}
-                      </div>
-                    </label>
-                  </div>
+      <section className="container lp-section">
+        <div className="row g-4 g-xl-5">
+          <aside className="col-lg-5">
+            <div className="reg-aside">
+              <img src="/images/landing/register-barber-9992819.jpg" alt={t('register.imgAlt')} />
+              <div className="lp-eyebrow mt-4">{t('register.asideEyebrow')}</div>
+              <h2 className="lp-title lp-title-left reg-aside-title">{t('register.asideTitle')}</h2>
+              <p className="mt-3 mb-3">{t('register.asideText')}</p>
+              <ul className="list-unstyled vstack gap-2 mb-0">
+                {['asidePoint1', 'asidePoint2', 'asidePoint3'].map((k) => (
+                  <li key={k} className="d-flex gap-2">
+                    <i className="bi bi-check-circle-fill lp-check" aria-hidden="true" />
+                    <span>{t(`register.${k}`)}</span>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
-          </section>
+          </aside>
 
-          {error && <div className="alert alert-danger mb-0">{error}</div>}
-          <div className="d-flex justify-content-end">
-            <button type="submit" className="btn btn-primary btn-lg" disabled={registerState.isLoading}>{t('register.submit')}</button>
+          <div className="col-lg-7">
+            <form onSubmit={onSubmit} className="reg-card">
+              <h2 className="reg-card-title">{t('register.formTitle')}</h2>
+
+              <fieldset>
+                <legend>{t('register.ownerSection')}</legend>
+                <div className="row g-3">
+                  <Field id="ad" label={t('register.name')} icon="bi-person" required value={form.ad} onChange={(v) => set('ad', v)} autoComplete="given-name" />
+                  <Field id="soyad" label={t('register.surname')} icon="bi-person" required value={form.soyad} onChange={(v) => set('soyad', v)} autoComplete="family-name" />
+                  <Field id="telefon" label={t('register.phone')} icon="bi-telephone" type="tel" required value={form.telefon} onChange={(v) => set('telefon', v)} autoComplete="tel" />
+                  <Field id="email" label={t('register.email')} icon="bi-envelope" type="email" required value={form.email} onChange={(v) => set('email', v)} autoComplete="email" />
+                  <Field id="password" label={t('register.password')} icon="bi-lock" type="password" required minLength={8} value={form.password} onChange={(v) => set('password', v)} autoComplete="new-password" />
+                  <Field id="passwordRepeat" label={t('register.passwordRepeat')} icon="bi-lock" type="password" required minLength={8} value={form.passwordRepeat} onChange={(v) => set('passwordRepeat', v)} autoComplete="new-password" />
+                </div>
+              </fieldset>
+
+              <fieldset>
+                <legend>{t('register.salonSection')}</legend>
+                <div className="row g-3">
+                  <Field id="isletmeAd" label={t('register.businessName')} icon="bi-building" required value={form.isletmeAd} onChange={(v) => set('isletmeAd', v)} autoComplete="organization" />
+                  <Field id="dukkanAd" label={t('register.shopName')} icon="bi-shop" required value={form.dukkanAd} onChange={(v) => set('dukkanAd', v)} />
+                  <div className="col-sm-6">
+                    <label className="form-label" htmlFor="il">{t('register.city')}</label>
+                    <select id="il" className="form-select" required value={form.ilId} onChange={(e) => onCityChange(e.target.value)}>
+                      <option value="">{t('register.choose')}</option>
+                      {cities.map((c) => <option key={c.id} value={c.id}>{c.ad}</option>)}
+                    </select>
+                  </div>
+                  <div className="col-sm-6">
+                    <label className="form-label" htmlFor="ilce">{t('register.district')}</label>
+                    <select id="ilce" className="form-select" required value={form.ilceId} onChange={(e) => set('ilceId', e.target.value)} disabled={!form.ilId}>
+                      <option value="">{t('register.choose')}</option>
+                      {districts.map((d) => <option key={d.id} value={d.id}>{d.ad}</option>)}
+                    </select>
+                  </div>
+                  <Field id="adres" label={t('register.address')} icon="bi-geo-alt" value={form.adres} onChange={(v) => set('adres', v)} autoComplete="street-address" />
+                  <Field id="dukkanTelefon" label={t('register.shopPhone')} icon="bi-telephone" type="tel" value={form.dukkanTelefon} onChange={(v) => set('dukkanTelefon', v)} />
+                </div>
+              </fieldset>
+
+              <fieldset>
+                <legend>{t('register.planSection')}</legend>
+                <div className="row g-3">
+                  {plans.map((p) => (
+                    <div key={p.kod} className="col-sm-4">
+                      <label className={`reg-plan ${form.planKod === p.kod ? 'is-active' : ''}`}>
+                        <div className="form-check mb-0">
+                          <input className="form-check-input" type="radio" name="plan" value={p.kod} checked={form.planKod === p.kod} onChange={() => set('planKod', p.kod)} />
+                          <span className="form-check-label fw-semibold">{p.ad}</span>
+                        </div>
+                        <div className="small mt-1">
+                          {p.aylikUcret === null ? t('landing.priceSoon') : p.aylikUcret === 0 ? t('landing.free') : `${p.aylikUcret.toLocaleString('tr-TR')} ₺ ${t('landing.perMonth')}`}
+                        </div>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+                <p className="small text-secondary mt-3 mb-0">{t('landing.paymentNote')}</p>
+              </fieldset>
+
+              {error && <div className="alert alert-danger" role="alert">{error}</div>}
+              <div className="reg-actions">
+                <button type="submit" className="btn btn-primary btn-lg rounded-pill px-5" disabled={registerState.isLoading}>{t('register.submit')}</button>
+                <span className="small">{t('register.hasAccount')} <Link to="/login">{t('login.submit')}</Link></span>
+              </div>
+            </form>
           </div>
-        </form>
-      </div>
+        </div>
+      </section>
+
+      <PublicFooter />
     </div>
   );
 }
