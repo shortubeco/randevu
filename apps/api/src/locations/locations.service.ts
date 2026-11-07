@@ -1,18 +1,26 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 
+interface Place {
+  id: number;
+  ad: string;
+}
+
+// Sıralama burada yapılır: veritabanının dil ayarına bağlı kalırsa Ç, İ, Ş ile başlayan adlar listenin sonuna düşebilir.
+const byTurkishName = (a: Place, b: Place) => a.ad.localeCompare(b.ad, 'tr');
+
 @Injectable()
 export class LocationsService {
   constructor(private readonly db: DatabaseService) {}
 
   async cities() {
-    const r = await this.db.query(`SELECT id, ad FROM "Il" ORDER BY ad`);
-    return r.rows;
+    const r = await this.db.query<Place>(`SELECT id, ad FROM "Il"`);
+    return r.rows.sort(byTurkishName);
   }
 
   async districts(ilId: number) {
-    const r = await this.db.query(`SELECT id, ad FROM "Ilce" WHERE "ilId" = $1 ORDER BY ad`, [ilId]);
-    return r.rows;
+    const r = await this.db.query<Place>(`SELECT id, ad FROM "Ilce" WHERE "ilId" = $1`, [ilId]);
+    return r.rows.sort(byTurkishName);
   }
 
   // Seçilen ilçedeki aktif dükkanlar. Sıralama: Gold, Silver, Ücretsiz; sonra ada göre.

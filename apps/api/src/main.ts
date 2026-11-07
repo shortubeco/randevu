@@ -8,9 +8,9 @@ async function bootstrap() {
   // cPanel'de uygulama bir proxy arkasında çalışır; gerçek istemci IP'si için gerekli (istek sınırı).
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
-  // Web paneli farklı bir alan adında (panel.sozcutvcanli.com) çalışır.
+  // Web paneli farklı bir alan adında (kuafor.trthabercanli.com) çalışır.
   // Kimlik Bearer token ile taşındığı için çerez/credentials gerekmez.
-  const origins = (process.env.CORS_ORIGINS ?? 'https://panel.sozcutvcanli.com,http://localhost:5173')
+  const origins = (process.env.CORS_ORIGINS ?? 'https://kuafor.trthabercanli.com,http://localhost:5173')
     .split(',')
     .map((o) => o.trim());
   app.enableCors({ origin: origins, methods: 'GET,POST,PUT,PATCH,DELETE,OPTIONS' });
